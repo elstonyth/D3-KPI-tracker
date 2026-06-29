@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    // DOM is type-only here — it supplies the global fetch/Response/
+    // AbortController types used by media.ts (Node 18+ provides them at
+    // runtime, but @types/node@18 doesn't declare them). No runtime effect.
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "src/**/*.test.ts"]
+}

@@ -1,0 +1,459 @@
+const { join } = require('path');
+// D3 Creator — Yellow brand mono, Linear-flat. See /DESIGN.md.
+// Primary color: #F2E600 (logo). One hue, tonal shades only.
+module.exports = {
+  darkMode: 'class',
+  content: ['./src/**/*.{ts,tsx,html}', '../../libraries/**/*.{ts,tsx,html}'],
+  theme: {
+    extend: {
+      colors: {
+        // ---- BRAND tonal scale (built from logo #F2E600) -----------------
+        brand: {
+          50: '#FEFCE8',
+          100: '#FEF9C3',
+          200: '#FEF08A',
+          300: '#FDE047',
+          400: '#FACC15',
+          500: '#F2E600', // *** LOGO ***
+          600: '#CA8A04',
+          700: '#A16207',
+          800: '#854D0E',
+          900: '#4D3800',
+          950: '#1A1900',
+          DEFAULT: '#F2E600',
+          light: '#FDE047',
+          lighter: '#FEF08A',
+          dark: '#9C9400',
+          darker: '#0E0D00',
+          deepest: '#050500',
+        },
+        // Aurora aliases: neutral white-tints (yellow scarce per Linear).
+        // Only cta + ctaHover stay yellow. Pages that use aurora.violet/cyan/pink
+        // for chips/dots now render as muted neutrals — no decorative yellow.
+        aurora: {
+          cyan: 'rgba(255, 255, 255, 0.78)',
+          violet: 'rgba(255, 255, 255, 0.85)',
+          pink: 'rgba(255, 255, 255, 0.62)',
+          cta: '#F2E600',
+          ctaHover: '#FDE047',
+        },
+        canvas: 'var(--canvas)',
+        canvasDeep: 'var(--canvas-deep)',
+        glass: {
+          base: 'var(--glass-base)',
+          elevated: 'var(--glass-elevated)',
+          subtle: 'var(--glass-subtle)',
+          modal: 'var(--glass-modal)',
+        },
+        borderGlass: 'var(--border-glass)',
+        borderGlassStrong: 'var(--border-glass-strong)',
+        scrim: 'var(--scrim)',
+        fg: 'var(--fg)',
+        fgMuted: 'var(--fg-muted)',
+        fgSubtle: 'var(--fg-subtle)',
+        success: 'var(--color-success)',
+        warning: 'var(--color-warning)',
+        danger: 'var(--color-danger)',
+        info: 'var(--color-info)',
+
+        // ---- Legacy lambo* aliases — every value now yellow brand --------
+        lamboBlack: '#0E0D00',
+        lamboCharcoal: '#1A1900',
+        lamboIron: '#050500',
+        lamboGold: '#F2E600',
+        lamboGoldDark: '#9C9400',
+        lamboGoldText: '#FDE047',
+        lamboWhite: '#FFFFFF',
+        lamboSmoke: '#FEF9C3',
+        lamboAsh: 'rgba(255, 255, 255, 0.65)',
+        lamboSteel: 'rgba(255, 255, 255, 0.65)',
+        lamboGraphite: '#4D3800',
+        lamboShadow: '#2A2810',
+        lamboCyan: '#FDE047',
+        lamboLink: '#F2E600',
+        lamboTeal: '#F2E600',
+
+        // ---- Legacy token mapping (preserves existing class names) -------
+        primary: 'var(--color-primary)',
+        secondary: 'var(--color-secondary)',
+        textColor: 'var(--new-btn-text)',
+        third: 'var(--color-third)',
+        forth: 'var(--color-forth)',
+        fifth: 'var(--color-fifth)',
+        sixth: 'var(--color-sixth)',
+        seventh: 'var(--color-seventh)',
+        gray: 'var(--color-gray)',
+        input: 'var(--color-input)',
+        inputText: 'var(--color-input-text)',
+        tableBorder: 'var(--color-table-border)',
+        customColor1: 'var(--color-custom1)',
+        customColor2: 'var(--color-custom2)',
+        customColor3: 'var(--color-custom3)',
+        customColor4: 'var(--color-custom4)',
+        customColor5: 'var(--color-custom5)',
+        customColor6: 'var(--color-custom6)',
+        customColor7: 'var(--color-custom7)',
+        customColor8: 'var(--color-custom8)',
+        customColor9: 'var(--color-custom9)',
+        customColor10: 'var(--color-custom10)',
+        customColor11: 'var(--color-custom11)',
+        customColor12: 'var(--color-custom12)',
+        customColor13: 'var(--color-custom13)',
+        customColor14: 'var(--color-custom14)',
+        customColor15: 'var(--color-custom15)',
+        customColor16: 'var(--color-custom16)',
+        customColor17: 'var(--color-custom17)',
+        customColor18: 'var(--color-custom18)',
+        customColor19: 'var(--color-custom19)',
+        customColor20: 'var(--color-custom20)',
+        customColor21: 'var(--color-custom21)',
+        customColor22: 'var(--color-custom22)',
+        customColor23: 'var(--color-custom23)',
+        customColor24: 'var(--color-custom24)',
+        customColor25: 'var(--color-custom25)',
+        customColor26: 'var(--color-custom26)',
+        customColor27: 'var(--color-custom27)',
+        customColor28: 'var(--color-custom28)',
+        customColor29: 'var(--color-custom29)',
+        customColor30: 'var(--color-custom30)',
+        customColor31: 'var(--color-custom31)',
+        customColor32: 'var(--color-custom32)',
+        customColor33: 'var(--color-custom33)',
+        customColor34: 'var(--color-custom34)',
+        customColor35: 'var(--color-custom35)',
+        customColor36: 'var(--color-custom36)',
+        customColor37: 'var(--color-custom37)',
+        customColor38: 'var(--color-custom38)',
+        customColor39: 'var(--color-custom39)',
+        customColor40: 'var(--color-custom40)',
+        customColor41: 'var(--color-custom41)',
+        customColor42: 'var(--color-custom42)',
+        customColor43: 'var(--color-custom43)',
+        customColor44: 'var(--color-custom44)',
+        customColor45: 'var(--color-custom45)',
+        customColor46: 'var(--color-custom46)',
+        customColor47: 'var(--color-custom47)',
+        customColor48: 'var(--color-custom48)',
+        customColor49: 'var(--color-custom49)',
+        customColor50: 'var(--color-custom50)',
+        customColor51: 'var(--color-custom51)',
+        customColor52: 'var(--color-custom52)',
+        customColor53: 'var(--color-custom53)',
+        customColor54: 'var(--color-custom54)',
+        customColor55: 'var(--color-custom55)',
+        modalCustom: 'var(--color-modalCustom)',
+        newBgColor: 'var(--new-bgColor)',
+        newBackdrop: 'var(--new-back-drop)',
+        newSep: 'var(--new-sep)',
+        newBorder: 'var(--new-border)',
+        newBgColorInner: 'var(--new-bgColorInner)',
+        newBgLineColor: 'var(--new-bgLineColor)',
+        textItemFocused: 'var(--new-textItemFocused)',
+        textItemBlur: 'var(--new-textItemBlur)',
+        boxFocused: 'var(--new-boxFocused)',
+        newTextColor: 'rgb(var(--new-textColor) / <alpha-value>)',
+        blockSeparator: 'var(--new-blockSeparator)',
+        btnSimple: 'var(--new-btn-simple)',
+        btnText: 'var(--new-btn-text)',
+        btnPrimary: 'var(--new-btn-primary)',
+        ai: 'var(--new-ai-btn)',
+        boxHover: 'var(--new-box-hover)',
+        newTableBorder: 'var(--new-table-border)',
+        newTableHeader: 'var(--new-table-header)',
+        newTableText: 'var(--new-table-text)',
+        newTableTextFocused: 'var(--new-table-text-focused)',
+        newColColor: 'var(--new-col-color)',
+        newSettings: 'var(--new-settings)',
+        menuDots: 'var(--new-menu-dots)',
+        menuDotsHover: 'var(--new-menu-hover)',
+        bigStrip: 'var(--new-big-strips)',
+        popup: 'var(--popup-color)',
+        bgLinkedin: 'var(--linkedin-bg)',
+        bgFacebook: 'var(--facebook-bg)',
+        bgInstagram: 'var(--instagram-bg)',
+        bgTiktokItem: 'var(--tiktok-item-bg)',
+        bgTiktokItemIcon: 'var(--tiktok-item-icon-bg)',
+        bgYoutube: 'var(--youtube-bg)',
+        bgCommentFacebook: 'var(--facebook-bg-comment)',
+        textLinkedin: 'var(--linkedin-text)',
+        borderPreview: 'var(--border-preview)',
+        borderLinkedin: 'var(--linkedin-border)',
+        youtubeButton: 'var(--youtube-button)',
+        youtubeBgAction: 'var(--youtube-action-color)',
+        youtubeSvg: 'var(--youtube-svg-border)',
+      },
+      gridTemplateColumns: {
+        13: 'repeat(13, minmax(0, 1fr));',
+        bento: 'repeat(12, minmax(0, 1fr))',
+      },
+      gridAutoRows: {
+        bento: 'minmax(180px, auto)',
+      },
+      backgroundImage: {
+        // Single-axis linear only. Yellow shades only. No multi-hue.
+        brandVert: 'linear-gradient(180deg, #F2E600 0%, #9C9400 100%)',
+        brandHoriz: 'linear-gradient(90deg, #9C9400 0%, #F2E600 100%)',
+        brandFade:
+          'linear-gradient(180deg, rgba(242, 230, 0, 0.10) 0%, transparent 100%)',
+        brandSheen:
+          'linear-gradient(90deg, transparent 0%, rgba(242, 230, 0, 0.10) 50%, transparent 100%)',
+        // Aurora aliases (kept for backwards compat — all yellow shades now)
+        aurora: 'linear-gradient(180deg, #F2E600 0%, #9C9400 100%)',
+        auroraSoft:
+          'linear-gradient(180deg, rgba(242, 230, 0, 0.10) 0%, transparent 100%)',
+        auroraGlow:
+          'linear-gradient(180deg, rgba(242, 230, 0, 0.12) 0%, transparent 100%)',
+        glassShimmer:
+          'linear-gradient(90deg, transparent 40%, rgba(242, 230, 0, 0.08) 50%, transparent 60%)',
+        loginBox: 'url(/auth/login-box.png)',
+        loginBg: 'url(/auth/bg-login.png)',
+      },
+      fontFamily: {
+        sans: [
+          'var(--font-geist-sans)',
+          'Inter',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'system-ui',
+          'sans-serif',
+        ],
+        display: [
+          'var(--font-geist-sans)',
+          'Inter',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'sans-serif',
+        ],
+        mono: [
+          'var(--font-geist-mono)',
+          '"JetBrains Mono"',
+          '"SF Mono"',
+          'Menlo',
+          'monospace',
+        ],
+        lambo: [
+          'var(--font-geist-sans)',
+          'Inter',
+          '-apple-system',
+          'sans-serif',
+        ],
+      },
+      fontSize: {
+        // Linear-style type scale — large confident headings, 15-16px body
+        'display-1': [
+          'clamp(48px, 6vw, 88px)',
+          { lineHeight: '1.04', letterSpacing: '-0.035em', fontWeight: '700' },
+        ],
+        'display-2': [
+          'clamp(36px, 4vw, 56px)',
+          { lineHeight: '1.08', letterSpacing: '-0.03em', fontWeight: '700' },
+        ],
+        section: [
+          '32px',
+          { lineHeight: '1.15', letterSpacing: '-0.025em', fontWeight: '600' },
+        ],
+        subsection: [
+          '22px',
+          { lineHeight: '1.3', letterSpacing: '-0.015em', fontWeight: '600' },
+        ],
+        heading: [
+          '18px',
+          { lineHeight: '1.4', letterSpacing: '-0.01em', fontWeight: '600' },
+        ],
+        'body-lg': ['17px', { lineHeight: '1.6' }],
+        body: ['15px', { lineHeight: '1.6' }],
+        'body-sm': ['14px', { lineHeight: '1.55' }],
+        label: [
+          '13px',
+          { lineHeight: '1.4', letterSpacing: '0', fontWeight: '500' },
+        ],
+        caption: [
+          '12px',
+          { lineHeight: '1.4', letterSpacing: '0', fontWeight: '500' },
+        ],
+        micro: [
+          '11px',
+          { lineHeight: '1.4', letterSpacing: '0.03em', fontWeight: '500' },
+        ],
+      },
+      borderRadius: {
+        none: '0px',
+        sm: '4px',
+        DEFAULT: '6px',
+        md: '6px',
+        lg: '8px',
+        xl: '10px',
+        '2xl': '12px',
+        '3xl': '16px',
+        '4xl': '24px',
+        full: '9999px',
+      },
+      backdropBlur: {
+        xs: '4px',
+        sm: '8px',
+        DEFAULT: '12px',
+        md: '16px',
+        lg: '20px',
+        xl: '28px',
+        '2xl': '40px',
+        '3xl': '56px',
+      },
+      backdropSaturate: {
+        125: '1.25',
+        150: '1.5',
+        180: '1.8',
+        200: '2',
+      },
+      boxShadow: {
+        // Linear-style: minimal, dark, no colored glow
+        glass: '0 1px 2px rgba(0, 0, 0, 0.40), 0 4px 12px rgba(0, 0, 0, 0.30)',
+        glassSm: '0 1px 2px rgba(0, 0, 0, 0.30)',
+        glassLg:
+          '0 4px 16px rgba(0, 0, 0, 0.40), 0 16px 48px rgba(0, 0, 0, 0.50)',
+        glassInsetTop: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
+        // CTA: subtle dark drop, no yellow glow
+        ctaGlow:
+          '0 1px 2px rgba(0, 0, 0, 0.40), 0 4px 12px rgba(0, 0, 0, 0.30)',
+        violetGlow:
+          '0 1px 2px rgba(0, 0, 0, 0.40), 0 4px 12px rgba(0, 0, 0, 0.30)',
+        brandGlow:
+          '0 1px 2px rgba(0, 0, 0, 0.40), 0 4px 12px rgba(0, 0, 0, 0.30)',
+        focusRing: '0 0 0 2px rgba(242, 230, 0, 0.40)',
+        focusRingCyan: '0 0 0 2px rgba(242, 230, 0, 0.40)',
+        // Legacy
+        yellow: '0 1px 2px rgba(0, 0, 0, 0.40), 0 4px 12px rgba(0, 0, 0, 0.30)',
+        yellowToast: '0 4px 16px rgba(0, 0, 0, 0.40)',
+        greenToast: '0 4px 16px rgba(0, 0, 0, 0.40)',
+        menu: 'var(--menu-shadow)',
+        previewShadow: 'var(--preview-box-shadow)',
+      },
+      dropShadow: {
+        // Stripped colored glows — Linear uses none
+        glow: ['0 1px 2px rgba(0, 0, 0, 0.50)'],
+        aurora: ['0 1px 2px rgba(0, 0, 0, 0.50)'],
+      },
+      animation: {
+        // Linear-style: 150-200ms ease-out only, no decorative loops
+        riseIn: 'riseIn 0.18s ease-out forwards',
+        scaleIn: 'scaleIn 0.18s ease-out forwards',
+        // Legacy preserved — capped to ≤200ms ease-out single-fire
+        fade: 'fadeOut 0.18s ease-out',
+        normalFadeIn: 'normalFadeIn 0.18s ease-out',
+        fadeIn: 'normalFadeIn 0.18s ease-out forwards',
+        normalFadeOut: 'normalFadeOut 0.18s ease-out 4s forwards',
+        overflow: 'overFlow 0.18s ease-out forwards',
+        overflowReverse: 'overFlowReverse 0.18s ease-out forwards',
+        fadeDown: 'normalFadeDown 0.18s ease-out forwards',
+        normalFadeDown: 'normalFadeDown 0.18s ease-out forwards',
+        newMessages: 'newMessages 0.2s ease-out 4s forwards',
+        // Anti-slop: no infinite decorative loops. All replaced with single-fire fade.
+        sheen: 'normalFadeIn 0.18s ease-out',
+        marqueeUp: 'normalFadeIn 0.18s ease-out',
+        marqueeDown: 'normalFadeIn 0.18s ease-out',
+        auroraDrift: 'normalFadeIn 0.18s ease-out',
+        shimmer: 'normalFadeIn 0.18s ease-out',
+        glow: 'normalFadeIn 0.18s ease-out',
+      },
+      keyframes: (theme) => ({
+        sheen: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+        riseIn: {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        scaleIn: {
+          '0%': { opacity: '0', transform: 'scale(0.98)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        fadeOut: {
+          '0%': { opacity: 0, transform: 'translateY(8px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+        normalFadeOut: { '0%': { opacity: 1 }, '100%': { opacity: 0 } },
+        normalFadeIn: { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+        overFlow: {
+          '0%': { overflow: 'hidden' },
+          '99%': { overflow: 'hidden' },
+          '100%': { overflow: 'visible' },
+        },
+        overFlowReverse: {
+          '0%': { overflow: 'visible' },
+          '99%': { overflow: 'visible' },
+          '100%': { overflow: 'hidden' },
+        },
+        fadeDown: {
+          '0%': { opacity: 0, marginTop: -16 },
+          '10%': { opacity: 1, marginTop: 0 },
+          '85%': { opacity: 1, marginTop: 0 },
+          '90%': { opacity: 1, marginTop: 4 },
+          '100%': { opacity: 0, marginTop: -16 },
+        },
+        normalFadeDown: {
+          '0%': { opacity: 0, transform: 'translateY(-8px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+        newMessages: {
+          '0%': { backgroundColor: 'var(--color-seventh)' },
+          '100%': { backgroundColor: 'var(--color-third)' },
+        },
+      }),
+      screens: {
+        mobile: { raw: '(max-width: 1025px)' },
+        tablet: { raw: '(max-width: 1300px)' },
+        iconBreak: { raw: '(max-width: 1560px)' },
+        maxMedia: { raw: '(max-width: 1400px)' },
+        minCustom: { raw: '(min-height: 800px)' },
+        custom: { raw: '(max-height: 800px)' },
+        xs: { max: '401px' },
+        // Ultra-narrow phones (old iPhone SE/5 ≈320px, small Androids ≈360px).
+        // Below this, full-digit showcase columns are too wide — drop secondary
+        // cells so creator names stay readable.
+        tiny: { max: '374px' },
+      },
+      transitionTimingFunction: {
+        // Linear uses ease-out exclusively. Spring/liquid mapped to ease-out (anti-slop).
+        spring: 'cubic-bezier(0, 0, 0.2, 1)',
+        liquid: 'cubic-bezier(0, 0, 0.2, 1)',
+      },
+      transitionDuration: {
+        DEFAULT: '180ms',
+      },
+    },
+  },
+  plugins: [
+    require('tailwind-scrollbar'),
+    require('tailwindcss-rtl'),
+    function ({ addVariant, addUtilities }) {
+      addVariant('child', '& > *');
+      addVariant('child-hover', '& > *:hover');
+      addUtilities({
+        // Linear-flat surfaces — solid dark, no backdrop blur required
+        '.glass': {
+          background: 'var(--glass-base)',
+          border: '1px solid var(--border-glass)',
+        },
+        '.glass-elevated': {
+          background: 'var(--glass-elevated)',
+          border: '1px solid var(--border-glass-strong)',
+        },
+        '.glass-subtle': {
+          background: 'var(--glass-subtle)',
+          border: '1px solid var(--border-glass)',
+        },
+        '.glass-modal': {
+          background: 'var(--glass-modal)',
+          border: '1px solid var(--border-glass-strong)',
+        },
+        // Anti-slop: gradient text utilities stripped to solid yellow.
+        '.aurora-text': {
+          color: '#F2E600',
+        },
+        '.brand-text': {
+          color: '#F2E600',
+        },
+      });
+    },
+  ],
+};

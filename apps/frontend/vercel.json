@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "regions": ["sin1"],
+  "crons": [
+    {
+      "path": "/api/cron/daily-snapshot",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/archive-and-purge",
+      "schedule": "30 2 * * *"
+    },
+    {
+      "path": "/api/admin/backfill-media",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}

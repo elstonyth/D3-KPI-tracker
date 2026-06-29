@@ -1,0 +1,102 @@
+# .graphifyignore — controls what graphify indexes.
+# graphify uses THIS file instead of .gitignore when it exists, so the whole
+# .gitignore is replicated below to keep node_modules/.claude/etc. excluded.
+# The "graphify scope" block at the end adds the noise we deliberately prune
+# from the knowledge graph (i18n string bundles, dependency lists, static
+# images) so `graphify update` and the commit hook stay consistent with the
+# clean graph instead of re-polluting it.
+
+# ===== replicated from .gitignore =====
+# compiled output
+dist
+tmp
+/out-tsc
+.env
+# dependencies
+node_modules
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode/*
+
+# misc
+/.sass-cache
+/connect.lock
+/coverage
+/libpeerconnection.log
+npm-debug.log
+yarn-error.log
+testem.log
+/typings
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# graphify knowledge-graph output (generated, large)
+graphify-out/
+
+.nx/cache
+.nx/workspace-data
+
+# Next.js
+.next
+
+# Vim files
+**/*.swp
+**/*.swo
+
+# Temporary files
+*.orig
+*.~*~
+*.tsbuildinfo
+
+# Secrets / local
+.secrets/
+libraries/plugins/src/plugins.ts
+i18n.cache
+apps/frontend/public/g.js
+install.log
+.gstack/
+__pycache__/
+
+# D3 — local agent tooling, never commit
+.claude/
+.agents/
+
+# D3 — exploration / scratch
+design-system/
+qa-report.md
+skills-lock.json
+libraries/database/src/seed-ui-check.ts
+reports/
+var/
+dynamicconfig/
+.vercel
+.env*
+.env.sentry-build-plugin
+.playwright-cli/
+.playwright-mcp/
+e2e-screenshots/
+.vstate.txt
+
+# ===== graphify scope (noise pruned from the knowledge graph) =====
+# Static assets — Postiz-leftover icons/avatars/logos, near-zero arch signal,
+# each image would otherwise spawn its own vision subagent.
+apps/frontend/public/
+.github/assets/
+d3-logo-official.png
+d3-smallogo.png
+d3-smallogo.jpg
+
+# i18n string bundles — ~500 leaf-key nodes each, 16 locales = ~8k noise nodes.
+libraries/react-shared-libraries/src/translation/locales/
+
+# Dependency manifests — AST turns every dependency into a node.
+package.json

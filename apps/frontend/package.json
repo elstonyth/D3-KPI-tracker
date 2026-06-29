@@ -1,0 +1,30 @@
+{
+  "name": "d3-creator-frontend",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "dev": "dotenv -e ../../.env -- next dev -p 4200",
+    "dev:webpack": "dotenv -e ../../.env -- next dev -p 4200 --webpack",
+    "prewarm": "node scripts/prewarm.mjs",
+    "fetch-gtm": "node scripts/fetch-gtm.mjs",
+    "postinstall": "node scripts/fetch-gtm.mjs",
+    "build": "next build",
+    "build:frontend": "next build",
+    "lint": "eslint . --max-warnings=0",
+    "build:sentry": "dotenv -e ../../.env -- next build",
+    "start": "dotenv -e ../../.env -- next start -p 4200",
+    "pm2": "pm2 start pnpm --name frontend -- start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@react-three/fiber": "^9.3.0",
+    "@react-three/postprocessing": "^3.0.4",
+    "@vercel/analytics": "^2.0.1",
+    "gsap": "^3.13.0",
+    "postprocessing": "^6.36.0",
+    "three": "^0.167.1"
+  }
+}
