@@ -39,7 +39,10 @@ export function DailyKpis({
   days: DaysOption;
   rows: CreatorDailyKpiRow[];
 }) {
-  const hasData = rows.some((r) => !r.insufficient);
+  // Show the section whenever there's real data — not only when a prior-day
+  // baseline exists. A creator with one day of totals (all rows insufficient, no
+  // deltas yet) still gets cards + cumulative line; deltas render as "—".
+  const hasData = rows.some((r) => r.followersTotal > 0 || r.viewsTotal > 0);
 
   const chrono = rows;
   const newestFirst = [...rows].reverse();

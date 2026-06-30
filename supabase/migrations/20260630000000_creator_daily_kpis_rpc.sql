@@ -64,8 +64,11 @@ as $$
     group by d.day
   ),
   merged as (
-    select f.day, f.followers_total, v.views_total
-    from foll f join vw v on v.day = f.day
+    -- LEFT JOIN so a creator with followers but no posts still returns the daily
+    -- series (views default to 0) rather than an empty result.
+    select f.day, f.followers_total, coalesce(v.views_total, 0) as views_total
+    from foll f
+    left join vw v on v.day = f.day
   )
   select
     day,

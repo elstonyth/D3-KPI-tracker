@@ -55,4 +55,33 @@ begin
   raise notice 'creator_daily_kpis verify: ALL PASS';
 end $$;
 
+-- Followers-only creator (no posts at all) must still return a full series with
+-- views defaulted to 0 — regression guard for the foll/vw LEFT JOIN.
+insert into public.creator (id, display_name)
+values ('00000000-0000-0000-0000-0000000000c2', 'Followers Only Creator');
+
+insert into public.profile (id, creator_id, platform, profile_url) values
+  ('00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-0000000000c2', 'instagram', 'https://instagram.com/fonly');
+
+insert into public.profile_snapshot (profile_id, captured_date, followers) values
+  ('00000000-0000-0000-0000-0000000000b1', current_date - 3, 700),
+  ('00000000-0000-0000-0000-0000000000b1', current_date - 2, 720),
+  ('00000000-0000-0000-0000-0000000000b1', current_date - 1, 735),
+  ('00000000-0000-0000-0000-0000000000b1', current_date,     760);
+
+do $$
+declare r record; n int;
+begin
+  select count(*) into n from public.creator_daily_kpis('00000000-0000-0000-0000-0000000000c2', 3);
+  assert n = 3, 'followers-only creator should return 3 rows, got '|| n;
+
+  select * into r from public.creator_daily_kpis('00000000-0000-0000-0000-0000000000c2', 3) where day = current_date;
+  assert r.followers_total  = 760, 'fonly followers_total d0 expected 760 got '|| coalesce(r.followers_total::text,'null');
+  assert r.followers_gained = 25,  'fonly followers_gained d0 expected 25';
+  assert r.views_total      = 0,   'fonly views_total d0 expected 0 (no posts)';
+  assert r.views_gained     = 0,   'fonly views_gained d0 expected 0 (no posts)';
+
+  raise notice 'creator_daily_kpis followers-only: PASS';
+end $$;
+
 rollback;
