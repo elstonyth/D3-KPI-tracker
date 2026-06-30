@@ -47,14 +47,15 @@ export function DailyKpis({
   const chrono = rows;
   const newestFirst = [...rows].reverse();
 
-  // Insufficient days have no valid prior-day baseline, so their "gained" is the
-  // starting cumulative, not a daily gain — count it as 0 in the sums and bars
-  // (the table still shows "—" for those days).
+  // Insufficient days have no valid prior-day baseline for that metric, so their
+  // "gained" is the opening cumulative, not a daily gain — count it as 0 in the
+  // sums and bars (the table still shows "—" for those days). Followers and views
+  // are flagged independently since views can start later than followers.
   const followersGainedSeries = chrono.map((r) =>
-    r.insufficient ? 0 : r.followersGained,
+    r.followersInsufficient ? 0 : r.followersGained,
   );
   const viewsGainedSeries = chrono.map((r) =>
-    r.insufficient ? 0 : r.viewsGained,
+    r.viewsInsufficient ? 0 : r.viewsGained,
   );
 
   const followersNow = rows.length ? rows[rows.length - 1].followersTotal : 0;
@@ -194,9 +195,9 @@ export function DailyKpis({
                         {formatCompact(r.followersTotal)}
                       </td>
                       <td
-                        className={`px-4 py-2.5 text-right ${r.insufficient ? 'text-fgSubtle' : deltaClass(r.followersGained)}`}
+                        className={`px-4 py-2.5 text-right ${r.followersInsufficient ? 'text-fgSubtle' : deltaClass(r.followersGained)}`}
                       >
-                        {r.insufficient
+                        {r.followersInsufficient
                           ? '—'
                           : `${caret(r.followersGained)}${formatDelta(r.followersGained)}`}
                       </td>
@@ -204,9 +205,9 @@ export function DailyKpis({
                         {formatCompact(r.viewsTotal)}
                       </td>
                       <td
-                        className={`px-4 py-2.5 text-right ${r.insufficient ? 'text-fgSubtle' : deltaClass(r.viewsGained)}`}
+                        className={`px-4 py-2.5 text-right ${r.viewsInsufficient ? 'text-fgSubtle' : deltaClass(r.viewsGained)}`}
                       >
-                        {r.insufficient
+                        {r.viewsInsufficient
                           ? '—'
                           : `${caret(r.viewsGained)}${formatDelta(r.viewsGained)}`}
                       </td>

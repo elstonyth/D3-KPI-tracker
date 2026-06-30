@@ -41,7 +41,9 @@ export function DailyBars({
       const vy = padTop + ((max - v) / range) * h;
       const positive = v >= 0;
       const y = positive ? vy : zeroY;
-      const barH = Math.max(1, Math.abs(vy - zeroY));
+      // Zero days render as no bar (height 0) so "no change" doesn't look like
+      // activity; non-zero values keep a 1px floor so small gains stay visible.
+      const barH = v === 0 ? 0 : Math.max(1, Math.abs(vy - zeroY));
       return { x, y, barW, barH, positive };
     });
     return { bars, zeroY };

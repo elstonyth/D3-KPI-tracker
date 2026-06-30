@@ -2,22 +2,25 @@
  * Typed access to the creator_daily_kpis RPC. Thin pass-through (mirrors
  * metrics-windowed.ts): call the RPC, map rows, return [] on error (logged).
  *
- * The RPC is service-role only, so the admin caller MUST inject the service-role
- * client (getSupabaseAdmin()). The anon read client would get permission denied
- * and fall back to [].
+ * The RPC is service-role only, so the caller MUST inject the service-role
+ * client (getSupabaseAdmin()). `client` is required — a missing admin client is
+ * a wiring bug, not "no data", so we don't fall back to the anon read client
+ * (which would get permission-denied and silently return []).
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getSupabaseRead } from './supabase-server';
 
 export interface CreatorDailyKpiRow {
   /** ISO date (YYYY-MM-DD). */
   day: string;
   followersTotal: number;
   followersGained: number;
+  /** No prior-day follower baseline — render the follower delta as "—". */
+  followersInsufficient: boolean;
   viewsTotal: number;
   viewsGained: number;
-  /** No prior-day baseline yet — render deltas as "—", not a spike. */
-  insufficient: boolean;
+  /** No prior-day view baseline (views may start after followers) — render the
+   *  view delta as "—". */
+  viewsInsufficient: boolean;
 }
 
 function toNum(v: unknown): number {
@@ -30,10 +33,9 @@ function toNum(v: unknown): number {
 export async function getCreatorDailyKpis(
   creatorId: string,
   days: number,
-  opts: { client?: SupabaseClient } = {},
+  opts: { client: SupabaseClient },
 ): Promise<CreatorDailyKpiRow[]> {
-  const sb = opts.client ?? getSupabaseRead();
-  const { data, error } = await sb.rpc('creator_daily_kpis', {
+  const { data, error } = await opts.client.rpc('creator_daily_kpis', {
     p_creator_id: creatorId,
     p_days: days,
   });
@@ -46,9 +48,10 @@ export async function getCreatorDailyKpis(
       day: String(r.day),
       followersTotal: toNum(r.followers_total),
       followersGained: toNum(r.followers_gained),
+      followersInsufficient: Boolean(r.followers_insufficient),
       viewsTotal: toNum(r.views_total),
       viewsGained: toNum(r.views_gained),
-      insufficient: Boolean(r.insufficient),
+      viewsInsufficient: Boolean(r.views_insufficient),
     }),
   );
 }

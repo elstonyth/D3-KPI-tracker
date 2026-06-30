@@ -34,14 +34,15 @@ New read-only SQL function (mirrors the existing windowed RPCs; all metric math
 stays in Postgres). Returns one row per day, newest-or-oldest order decided in
 TS:
 
-| column             | type    | meaning                                                                           |
-| ------------------ | ------- | --------------------------------------------------------------------------------- |
-| `day`              | date    | calendar day (UTC)                                                                |
-| `followers_total`  | bigint  | Σ followers across the creator's profiles, carried forward to that day            |
-| `followers_gained` | bigint  | `followers_total(day) − followers_total(day-1)`                                   |
-| `views_total`      | bigint  | Σ cumulative post views as of that day                                            |
-| `views_gained`     | bigint  | `views_total(day) − views_total(day-1)`                                           |
-| `insufficient`     | boolean | true when there is no prior-day baseline (brand-new creator / first observed day) |
+| column                   | type    | meaning                                                                  |
+| ------------------------ | ------- | ------------------------------------------------------------------------ |
+| `day`                    | date    | calendar day (UTC)                                                       |
+| `followers_total`        | bigint  | Σ followers across the creator's profiles, carried forward to that day   |
+| `followers_gained`       | bigint  | `followers_total(day) − followers_total(day-1)`                          |
+| `followers_insufficient` | boolean | true when there is no prior-day follower baseline                        |
+| `views_total`            | bigint  | Σ cumulative post views as of that day (0 until the first post snapshot) |
+| `views_gained`           | bigint  | `views_total(day) − views_total(day-1)`                                  |
+| `views_insufficient`     | boolean | true when there is no prior-day view baseline (views can start later)    |
 
 ### Semantics
 
@@ -55,17 +56,21 @@ TS:
   snapshots up to day D — robust to a transient bad re-scrape writing a lower
   value (same reasoning as `dashboard_view_totals_max_views`, migration
   20260605000000). Views are otherwise monotonic, so `views_gained >= 0`.
-- **Baseline day:** the series is generated from `current_date - p_days` through
-  `current_date` (p_days+1 calendar days) so the first _displayed_ day still has
-  a prior day to diff against. Days before any data exist are flagged
-  `insufficient` and rendered as `—` (no fabricated spike from 0).
+- **Baseline day:** the series runs from `current_date - p_days` through
+  `current_date` (`p_days` + 1 calendar days) so the first displayed day still has
+  a prior day to diff against. Days with no prior-day baseline are flagged
+  `followers_insufficient` / `views_insufficient` and rendered as `—` (no
+  fabricated spike from 0). The two flag **independently** — a creator can have
+  follower history before their first post snapshot, so the view delta is
+  suppressed on the first observed post day without suppressing the follower delta.
 - `p_days` clamped to a sane set server-side: `least(greatest(p_days,1),90)`.
 
 ### Implementation sketch (final SQL proven by the verify fixture)
 
-```
-with days as (
-  select generate_series(current_date - p_days, current_date, interval '1 day')::date as day
+```sql
+with bounds as (select least(greatest(coalesce(p_days, 30), 1), 90) as n),
+days as (
+  select generate_series(current_date - (select n from bounds), current_date, interval '1 day')::date as day
 ),
 prof as (
   select id from public.profile
@@ -76,28 +81,34 @@ foll as ( -- carry-forward followers per profile per day
     select s.followers from public.profile_snapshot s
     where s.profile_id = pr.id and s.captured_date <= d.day
     order by s.captured_date desc limit 1
-  )) as followers_total
+  ))::bigint as followers_total
   from days d cross join prof pr group by d.day
 ),
 posts as (
   select distinct profile_id, external_post_id from public.post_snapshot
   where profile_id in (select id from prof)
 ),
-vw as ( -- cumulative views (MAX per post) as of each day
-  select d.day, coalesce(sum((
+vw as ( -- cumulative views (MAX per post); NULL until the first post snapshot
+  select d.day, sum((
     select max(ps.views) from public.post_snapshot ps
     where ps.profile_id = p.profile_id and ps.external_post_id = p.external_post_id
       and ps.captured_date <= d.day
-  )), 0) as views_total
+  ))::bigint as views_total
   from days d cross join posts p group by d.day
+),
+merged as ( -- LEFT JOIN so followers-only creators still get a series
+  select f.day, f.followers_total, v.views_total
+  from foll f left join vw v on v.day = f.day
 )
 select day,
   followers_total,
-  followers_total - lag(followers_total) over (order by day) as followers_gained,
-  views_total,
-  views_total - lag(views_total) over (order by day) as views_gained,
-  (lag(followers_total) over (order by day)) is null as insufficient
-from foll join vw using (day)
+  (followers_total - lag(followers_total) over w)::bigint as followers_gained,
+  (lag(followers_total) over w) is null as followers_insufficient,
+  coalesce(views_total, 0)::bigint as views_total,
+  (views_total - lag(views_total) over w)::bigint as views_gained,
+  (lag(views_total) over w) is null as views_insufficient
+from merged
+window w as (order by day)
 order by day
 offset 1; -- drop the baseline day, keep the p_days window
 ```
