@@ -41,13 +41,26 @@ export function DailyKpis({
 }) {
   const hasData = rows.some((r) => !r.insufficient);
 
-  const followersNow = rows.length ? rows[rows.length - 1].followersTotal : 0;
-  const viewsNow = rows.length ? rows[rows.length - 1].viewsTotal : 0;
-  const followersGainedWindow = rows.reduce((a, r) => a + r.followersGained, 0);
-  const viewsGainedWindow = rows.reduce((a, r) => a + r.viewsGained, 0);
-
   const chrono = rows;
   const newestFirst = [...rows].reverse();
+
+  // Insufficient days have no valid prior-day baseline, so their "gained" is the
+  // starting cumulative, not a daily gain — count it as 0 in the sums and bars
+  // (the table still shows "—" for those days).
+  const followersGainedSeries = chrono.map((r) =>
+    r.insufficient ? 0 : r.followersGained,
+  );
+  const viewsGainedSeries = chrono.map((r) =>
+    r.insufficient ? 0 : r.viewsGained,
+  );
+
+  const followersNow = rows.length ? rows[rows.length - 1].followersTotal : 0;
+  const viewsNow = rows.length ? rows[rows.length - 1].viewsTotal : 0;
+  const followersGainedWindow = followersGainedSeries.reduce(
+    (a, b) => a + b,
+    0,
+  );
+  const viewsGainedWindow = viewsGainedSeries.reduce((a, b) => a + b, 0);
 
   return (
     <section className="flex flex-col gap-5">
@@ -115,7 +128,7 @@ export function DailyKpis({
             </div>
             <div className="h-[160px]">
               <DailyBars
-                values={chrono.map((r) => r.followersGained)}
+                values={followersGainedSeries}
                 ariaLabel="Followers gained per day"
               />
             </div>
@@ -129,7 +142,7 @@ export function DailyKpis({
               </div>
               <div className="h-[160px]">
                 <DailyBars
-                  values={chrono.map((r) => r.viewsGained)}
+                  values={viewsGainedSeries}
                   ariaLabel="Views gained per day"
                 />
               </div>
