@@ -41,8 +41,8 @@ export default function TermsPage() {
         These Terms of Service (&ldquo;
         <span className={inlineStrong}>Terms</span>&rdquo;) form a binding
         agreement between you (&ldquo;you&rdquo; or &ldquo;User&rdquo;) and{' '}
-        <span className={inlineStrong}>D3 KPI Tracker</span> (&ldquo;D3
-        Creator&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;, or
+        <span className={inlineStrong}>D3 KPI Tracker</span> (&ldquo;D3 KPI
+        Tracker&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;, or
         &ldquo;us&rdquo;) governing your access to and use of the D3 KPI Tracker
         website at{' '}
         <a className={linkClass} href={SITE_URL}>
@@ -162,10 +162,10 @@ export default function TermsPage() {
       <h2 className={sectionTitle}>5. Tracked Social Profiles</h2>
       <h3 className={subTitle}>5.1 Profiles You Own</h3>
       <p className={paragraph}>
-        D3 KPI Tracker tracks public social profiles that are added on your behalf
-        by your agency. You represent and warrant that you own, or have explicit
-        permission to have us track and analyze, every profile associated with
-        your account.
+        D3 KPI Tracker tracks public social profiles that are added on your
+        behalf by your agency. You represent and warrant that you own, or have
+        explicit permission to have us track and analyze, every profile
+        associated with your account.
       </p>
       <h3 className={subTitle}>5.2 Public Data</h3>
       <p className={paragraph}>
@@ -268,7 +268,7 @@ export default function TermsPage() {
       <h2 className={sectionTitle}>11. Limitation of Liability</h2>
       <p className={paragraph}>
         TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL D3
-        CREATOR, ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, OR LICENSORS BE
+        KPI TRACKER, ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, OR LICENSORS BE
         LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE
         DAMAGES, INCLUDING WITHOUT LIMITATION LOSS OF PROFITS, REVENUE, DATA,
         GOODWILL, OR OTHER INTANGIBLE LOSSES, ARISING OUT OF OR IN CONNECTION
@@ -362,8 +362,8 @@ export default function TermsPage() {
       <h3 className={subTitle}>16.1 Entire Agreement</h3>
       <p className={paragraph}>
         These Terms, together with the Privacy Policy, constitute the entire
-        agreement between you and D3 KPI Tracker regarding the Service and supersede
-        any prior agreements.
+        agreement between you and D3 KPI Tracker regarding the Service and
+        supersede any prior agreements.
       </p>
       <h3 className={subTitle}>16.2 Severability</h3>
       <p className={paragraph}>

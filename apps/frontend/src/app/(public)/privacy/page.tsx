@@ -38,7 +38,8 @@ export default function PrivacyPage() {
       </header>
 
       <p className={paragraph}>
-        D3 KPI Tracker (&ldquo;<span className={inlineStrong}>D3 KPI Tracker</span>
+        D3 KPI Tracker (&ldquo;
+        <span className={inlineStrong}>D3 KPI Tracker</span>
         &rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;) is
         committed to protecting your privacy. This Privacy Policy explains how
         we collect, use, store, and disclose your personal information when you
@@ -139,7 +140,9 @@ export default function PrivacyPage() {
           To provide and display analytics for the tracked social media accounts
           in your D3 KPI Tracker dashboard
         </li>
-        <li className={bullet}>To create and manage your D3 KPI Tracker account</li>
+        <li className={bullet}>
+          To create and manage your D3 KPI Tracker account
+        </li>
         <li className={bullet}>
           To authenticate you and keep your account secure
         </li>
@@ -168,8 +171,8 @@ export default function PrivacyPage() {
 
       <h2 className={sectionTitle}>3. Third-Party Services We Use</h2>
       <p className={paragraph}>
-        D3 KPI Tracker relies on the following third-party services to deliver its
-        features. Each third party is responsible for its own data handling
+        D3 KPI Tracker relies on the following third-party services to deliver
+        its features. Each third party is responsible for its own data handling
         under its own privacy policy.
       </p>
       <ul className="list-disc pl-6 mb-3">
@@ -289,7 +292,7 @@ export default function PrivacyPage() {
         agency to stop tracking any profile at any time. Once a profile is
         removed, we stop collecting new data for it. Historical analytics
         snapshots already collected may remain until they are deleted or your D3
-        Creator account is closed.
+        KPI Tracker account is closed.
       </p>
       <p className={paragraph}>
         For public profile tracking, we only collect data that is already public
