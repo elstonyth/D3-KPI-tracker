@@ -6,19 +6,24 @@ import { getSupabaseAdmin } from '@d3/database';
 import { getAuthContext } from '@gitroom/frontend/lib/auth';
 import { isUuid } from '@gitroom/frontend/lib/ids';
 import { getAdminCreatorDetail } from '@gitroom/frontend/lib/admin-creators';
+import { getCreatorDailyKpis } from '@gitroom/frontend/lib/metrics-daily';
+import { parseDaysParam } from '@gitroom/frontend/lib/daily-window';
 import { CreatorEditor } from './creator-editor';
+import { DailyKpis } from './daily-kpis';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: 'Admin · Edit creator — D3 Creator',
+  title: 'Admin · Edit creator — D3 KPI Tracker',
 };
 
 export default async function AdminCreatorEditorPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ days?: string }>;
 }) {
   const auth = await getAuthContext();
   if (!auth) redirect('/login');
@@ -27,7 +32,12 @@ export default async function AdminCreatorEditorPage({
   const { id } = await params;
   if (!isUuid(id)) notFound();
 
-  const detail = await getAdminCreatorDetail(getSupabaseAdmin(), id);
+  const days = parseDaysParam(await searchParams);
+  const admin = getSupabaseAdmin();
+  const [detail, kpis] = await Promise.all([
+    getAdminCreatorDetail(admin, id),
+    getCreatorDailyKpis(id, days, { client: admin }),
+  ]);
   if (!detail) notFound();
 
   return (
@@ -48,6 +58,7 @@ export default async function AdminCreatorEditorPage({
           </Link>
         </p>
       </header>
+      <DailyKpis creatorId={id} days={days} rows={kpis} />
       <CreatorEditor detail={detail} />
     </div>
   );
