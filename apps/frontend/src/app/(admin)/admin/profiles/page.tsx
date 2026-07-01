@@ -37,7 +37,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: 'Admin · Accounts — D3 Creator',
+  title: 'Admin · Accounts — D3 KPI Tracker',
 };
 
 function toPlatformKey(platform: string): PlatformKey {

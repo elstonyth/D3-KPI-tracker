@@ -10,9 +10,9 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — D3 Creator',
+  title: 'Terms of Service — D3 KPI Tracker',
   description:
-    'D3 Creator Terms of Service: the rules and conditions for using our social media analytics platform.',
+    'D3 KPI Tracker Terms of Service: the rules and conditions for using our social media analytics platform.',
   alternates: { canonical: '/terms' },
 };
 
@@ -41,9 +41,9 @@ export default function TermsPage() {
         These Terms of Service (&ldquo;
         <span className={inlineStrong}>Terms</span>&rdquo;) form a binding
         agreement between you (&ldquo;you&rdquo; or &ldquo;User&rdquo;) and{' '}
-        <span className={inlineStrong}>D3 Creator</span> (&ldquo;D3
-        Creator&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;, or
-        &ldquo;us&rdquo;) governing your access to and use of the D3 Creator
+        <span className={inlineStrong}>D3 KPI Tracker</span> (&ldquo;D3 KPI
+        Tracker&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;, or
+        &ldquo;us&rdquo;) governing your access to and use of the D3 KPI Tracker
         website at{' '}
         <a className={linkClass} href={SITE_URL}>
           {SITE_DOMAIN}
@@ -85,7 +85,7 @@ export default function TermsPage() {
 
       <h2 className={sectionTitle}>2. Description of the Service</h2>
       <p className={paragraph}>
-        D3 Creator is an agency-managed social media analytics platform.
+        D3 KPI Tracker is an agency-managed social media analytics platform.
         Agencies provision creator accounts and add the public social profiles
         they manage; creators sign in to view combined analytics across those
         profiles in a single dashboard. The Service currently supports analytics
@@ -162,10 +162,10 @@ export default function TermsPage() {
       <h2 className={sectionTitle}>5. Tracked Social Profiles</h2>
       <h3 className={subTitle}>5.1 Profiles You Own</h3>
       <p className={paragraph}>
-        D3 Creator tracks public social profiles that are added on your behalf
-        by your agency. You represent and warrant that you own, or have explicit
-        permission to have us track and analyze, every profile associated with
-        your account.
+        D3 KPI Tracker tracks public social profiles that are added on your
+        behalf by your agency. You represent and warrant that you own, or have
+        explicit permission to have us track and analyze, every profile
+        associated with your account.
       </p>
       <h3 className={subTitle}>5.2 Public Data</h3>
       <p className={paragraph}>
@@ -205,7 +205,7 @@ export default function TermsPage() {
       <h3 className={subTitle}>7.1 Our Rights</h3>
       <p className={paragraph}>
         The Service, including its software, design, branding (such as the
-        &ldquo;D3 Creator&rdquo; name and logo), and content (excluding User
+        &ldquo;D3 KPI Tracker&rdquo; name and logo), and content (excluding User
         Content), is owned by us or our licensors and is protected by copyright,
         trademark, and other intellectual property laws.
       </p>
@@ -268,7 +268,7 @@ export default function TermsPage() {
       <h2 className={sectionTitle}>11. Limitation of Liability</h2>
       <p className={paragraph}>
         TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL D3
-        CREATOR, ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, OR LICENSORS BE
+        KPI TRACKER, ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, OR LICENSORS BE
         LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE
         DAMAGES, INCLUDING WITHOUT LIMITATION LOSS OF PROFITS, REVENUE, DATA,
         GOODWILL, OR OTHER INTANGIBLE LOSSES, ARISING OUT OF OR IN CONNECTION
@@ -285,7 +285,7 @@ export default function TermsPage() {
 
       <h2 className={sectionTitle}>12. Indemnification</h2>
       <p className={paragraph}>
-        You agree to indemnify, defend, and hold harmless D3 Creator and its
+        You agree to indemnify, defend, and hold harmless D3 KPI Tracker and its
         affiliates, officers, agents, and employees from and against any claims,
         liabilities, damages, losses, and expenses (including reasonable legal
         fees) arising out of or in any way connected with:
@@ -351,7 +351,7 @@ export default function TermsPage() {
         conflict of laws principles.
       </p>
       <p className={paragraph}>
-        You and D3 Creator agree that the courts of Malaysia shall have
+        You and D3 KPI Tracker agree that the courts of Malaysia shall have
         exclusive jurisdiction to settle any dispute arising out of or in
         connection with these Terms or the Service, except where such exclusive
         jurisdiction would deprive you of mandatory consumer protections
@@ -362,8 +362,8 @@ export default function TermsPage() {
       <h3 className={subTitle}>16.1 Entire Agreement</h3>
       <p className={paragraph}>
         These Terms, together with the Privacy Policy, constitute the entire
-        agreement between you and D3 Creator regarding the Service and supersede
-        any prior agreements.
+        agreement between you and D3 KPI Tracker regarding the Service and
+        supersede any prior agreements.
       </p>
       <h3 className={subTitle}>16.2 Severability</h3>
       <p className={paragraph}>
@@ -390,7 +390,7 @@ export default function TermsPage() {
       </p>
       <GlassCard variant="base" padding="md" radius="xl" className="my-6">
         <p className="text-body-sm text-fgMuted mb-2">
-          <span className={inlineStrong}>D3 Creator</span>
+          <span className={inlineStrong}>D3 KPI Tracker</span>
         </p>
         <p className="text-body-sm text-fgMuted">
           Email:{' '}

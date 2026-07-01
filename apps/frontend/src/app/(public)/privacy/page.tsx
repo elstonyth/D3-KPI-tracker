@@ -10,9 +10,9 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — D3 Creator',
+  title: 'Privacy Policy — D3 KPI Tracker',
   description:
-    'D3 Creator Privacy Policy: how we collect, use, and protect your information when you use our social media analytics service.',
+    'D3 KPI Tracker Privacy Policy: how we collect, use, and protect your information when you use our social media analytics service.',
   alternates: { canonical: '/privacy' },
 };
 
@@ -38,7 +38,8 @@ export default function PrivacyPage() {
       </header>
 
       <p className={paragraph}>
-        D3 Creator (&ldquo;<span className={inlineStrong}>D3 Creator</span>
+        D3 KPI Tracker (&ldquo;
+        <span className={inlineStrong}>D3 KPI Tracker</span>
         &rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;) is
         committed to protecting your privacy. This Privacy Policy explains how
         we collect, use, store, and disclose your personal information when you
@@ -77,7 +78,7 @@ export default function PrivacyPage() {
 
       <h3 className={subTitle}>1.2 Tracked Social Profiles</h3>
       <p className={paragraph}>
-        D3 Creator is an agency-managed service: your agency adds the public
+        D3 KPI Tracker is an agency-managed service: your agency adds the public
         social profiles that belong to you (on Instagram, Facebook, TikTok, or
         Douyin), and we collect publicly available data from those profiles. For
         each tracked profile we collect:
@@ -137,9 +138,11 @@ export default function PrivacyPage() {
       <ul className="list-disc pl-6 mb-3">
         <li className={bullet}>
           To provide and display analytics for the tracked social media accounts
-          in your D3 Creator dashboard
+          in your D3 KPI Tracker dashboard
         </li>
-        <li className={bullet}>To create and manage your D3 Creator account</li>
+        <li className={bullet}>
+          To create and manage your D3 KPI Tracker account
+        </li>
         <li className={bullet}>
           To authenticate you and keep your account secure
         </li>
@@ -168,8 +171,8 @@ export default function PrivacyPage() {
 
       <h2 className={sectionTitle}>3. Third-Party Services We Use</h2>
       <p className={paragraph}>
-        D3 Creator relies on the following third-party services to deliver its
-        features. Each third party is responsible for its own data handling
+        D3 KPI Tracker relies on the following third-party services to deliver
+        its features. Each third party is responsible for its own data handling
         under its own privacy policy.
       </p>
       <ul className="list-disc pl-6 mb-3">
@@ -289,7 +292,7 @@ export default function PrivacyPage() {
         agency to stop tracking any profile at any time. Once a profile is
         removed, we stop collecting new data for it. Historical analytics
         snapshots already collected may remain until they are deleted or your D3
-        Creator account is closed.
+        KPI Tracker account is closed.
       </p>
       <p className={paragraph}>
         For public profile tracking, we only collect data that is already public
@@ -354,7 +357,7 @@ export default function PrivacyPage() {
       </p>
       <GlassCard variant="base" padding="md" radius="xl" className="my-6">
         <p className="text-body-sm text-fgMuted mb-2">
-          <span className={inlineStrong}>D3 Creator</span>
+          <span className={inlineStrong}>D3 KPI Tracker</span>
         </p>
         <p className="text-body-sm text-fgMuted">
           Email:{' '}

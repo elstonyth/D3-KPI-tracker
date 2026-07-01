@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
-  title: 'Sign in — D3 Creator',
+  title: 'Sign in — D3 KPI Tracker',
 };
 
 // Auth pages read cookies (getAuthContext) and must never prerender at build

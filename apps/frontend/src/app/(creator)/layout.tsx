@@ -7,6 +7,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { getAuthContext } from '@gitroom/frontend/lib/auth';
 import { SignOutButton } from '@gitroom/frontend/components/auth/signout-button';
 import NavLink from '@gitroom/frontend/components/ui/nav-link';
+import { SITE_NAME } from '@gitroom/frontend/lib/site';
 
 // Cookie-bound. Never prerender — Supabase env required at construction.
 export const dynamic = 'force-dynamic';
@@ -47,7 +48,7 @@ export default async function CreatorLayout({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/d3-logo.png" alt="D3" width={28} height={28} />
               <span className="text-heading font-semibold tracking-[-0.02em] text-fg">
-                D3 Creator
+                {SITE_NAME}
               </span>
             </Link>
             <nav className="flex items-center gap-1 text-label">

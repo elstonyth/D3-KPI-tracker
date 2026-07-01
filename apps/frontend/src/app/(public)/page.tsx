@@ -37,9 +37,9 @@ import { SITE_NAME, SITE_URL } from '@gitroom/frontend/lib/site';
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'D3 Creator — We don’t sell dreams. We show numbers.',
+  title: 'D3 KPI Tracker — We don’t sell dreams. We show numbers.',
   description:
-    'D3 Creator is a live showcase of the creators, brands, and IPs we grow across every platform. Real traffic. Real engagement. Real growth.',
+    'D3 KPI Tracker is a live showcase of the creators, brands, and IPs we grow across every platform. Real traffic. Real engagement. Real growth.',
   alternates: { canonical: '/' },
 };
 
@@ -116,7 +116,7 @@ export default async function HomePage() {
                   <span className="text-brand">We show numbers.</span>
                 </h1>
                 <p className="text-body text-fgMuted max-w-[480px] mx-auto lg:mx-0">
-                  D3 Creator is a live showcase of the creators, brands, and IPs
+                  D3 KPI Tracker is a live showcase of the creators, brands, and IPs
                   we grow across every platform. Real traffic. Real engagement.
                   Real growth.
                 </p>

@@ -6,7 +6,7 @@
  * ⚠️ Confirm CONTACT_EMAIL / PRIVACY_EMAIL point at real, monitored inboxes
  * before relying on the legal pages in production.
  */
-export const SITE_NAME = 'D3 Creator';
+export const SITE_NAME = 'D3 KPI Tracker';
 export const SITE_DOMAIN = 'www.d3creator.com';
 export const SITE_URL = 'https://www.d3creator.com';
 export const CONTACT_EMAIL = 'contact@d3creator.com';

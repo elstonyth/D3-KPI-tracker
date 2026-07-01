@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { FloatingPaths } from '@gitroom/frontend/components/ui/floating-paths';
+import { SITE_NAME } from '@gitroom/frontend/lib/site';
 
 interface AuthShellProps {
   children: ReactNode;
@@ -12,7 +13,12 @@ interface AuthShellProps {
 
 // Two-column auth layout: brand panel on the left (with FloatingPaths),
 // form panel on the right. Used for /login and /onboarding.
-export function AuthShell({ children, eyebrow, heading, subheading }: AuthShellProps) {
+export function AuthShell({
+  children,
+  eyebrow,
+  heading,
+  subheading,
+}: AuthShellProps) {
   return (
     <div className="min-h-screen w-full grid lg:grid-cols-[1.05fr_1fr] bg-canvas text-fg">
       {/* Left: brand panel */}
@@ -27,14 +33,14 @@ export function AuthShell({ children, eyebrow, heading, subheading }: AuthShellP
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/d3-logo.png" alt="D3" width={32} height={32} />
           <span className="text-heading font-semibold tracking-[-0.02em] text-fg">
-            D3 Creator
+            {SITE_NAME}
           </span>
         </Link>
 
         <div className="relative z-10 max-w-md">
           <blockquote className="text-section text-fg leading-tight tracking-[-0.02em]">
-            “D3 lets us watch every creator we manage in one place —
-            no logins to platforms, no chasing screenshots.”
+            “D3 lets us watch every creator we manage in one place — no logins
+            to platforms, no chasing screenshots.”
           </blockquote>
           <div className="mt-6 flex items-center gap-3 text-label text-fgMuted">
             <span className="size-8 rounded-full bg-aurora-cta/20 grid place-items-center text-aurora-cta font-semibold">
@@ -68,7 +74,7 @@ export function AuthShell({ children, eyebrow, heading, subheading }: AuthShellP
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/d3-logo.png" alt="D3" width={28} height={28} />
           <span className="text-heading font-semibold tracking-[-0.02em] text-fg">
-            D3 Creator
+            {SITE_NAME}
           </span>
         </div>
 
@@ -78,8 +84,12 @@ export function AuthShell({ children, eyebrow, heading, subheading }: AuthShellP
               <span className="inline-block size-1.5 rounded-full bg-aurora-cta" />
               {eyebrow}
             </span>
-            <h1 className="text-section text-fg tracking-[-0.02em]">{heading}</h1>
-            {subheading && <p className="text-body text-fgMuted">{subheading}</p>}
+            <h1 className="text-section text-fg tracking-[-0.02em]">
+              {heading}
+            </h1>
+            {subheading && (
+              <p className="text-body text-fgMuted">{subheading}</p>
+            )}
           </header>
 
           {children}

@@ -13,7 +13,7 @@ export function TransparencyManifesto() {
           id="about-transparency-heading"
           className="text-display-2 text-fg mb-6 max-w-[760px] mx-auto leading-[1.08] tracking-[-0.03em] text-balance"
         >
-          That&apos;s why D3 Creator exists.
+          That&apos;s why D3 KPI Tracker exists.
         </h2>
         <p className="text-body-lg text-fgMuted max-w-[680px] mx-auto mb-8">
           Instead of showing screenshots or edited case studies, we made our

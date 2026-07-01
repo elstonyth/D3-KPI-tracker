@@ -10,7 +10,7 @@ import { getDashboardViewTotalsWindowed } from '@gitroom/frontend/lib/metrics-wi
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'Dashboard — D3 Creator',
+  title: 'Dashboard — D3 KPI Tracker',
   description:
     'Live overview of every creator we grow at D3 — combined views and followers across Instagram, TikTok, Facebook, and Douyin.',
   alternates: { canonical: '/dashboard' },

@@ -3,7 +3,7 @@ import { AuthShell } from '@gitroom/frontend/components/auth/auth-shell';
 import { SignInForm } from '@gitroom/frontend/components/auth/sign-in-form';
 
 export const metadata: Metadata = {
-  title: 'Sign in — D3 Creator',
+  title: 'Sign in — D3 KPI Tracker',
 };
 
 interface LoginPageProps {

@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: 'Admin — D3 Creator',
+  title: 'Admin — D3 KPI Tracker',
 };
 
 export default async function AdminPage() {
