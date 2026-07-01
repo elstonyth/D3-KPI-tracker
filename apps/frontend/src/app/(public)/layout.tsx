@@ -82,7 +82,7 @@ export default async function PublicLayout({
                 suppressHydrationWarning
               />
               <span className="text-heading font-semibold tracking-[-0.02em] text-fg">
-                D3 Creator
+                D3 KPI Tracker
               </span>
             </Link>
             {/* Desktop nav */}
@@ -146,7 +146,7 @@ export default async function PublicLayout({
                 suppressHydrationWarning
               />
             }
-            brandName="D3 Creator"
+            brandName="D3 KPI Tracker"
             mainLinks={[
               { href: '/about', label: 'About' },
               { href: '/dashboard', label: 'Dashboard' },
@@ -157,7 +157,7 @@ export default async function PublicLayout({
               { href: '/terms', label: 'Terms' },
             ]}
             copyright={{
-              text: '© 2025 D3 Creator',
+              text: '© 2025 D3 KPI Tracker',
               license: 'All rights reserved',
             }}
           />

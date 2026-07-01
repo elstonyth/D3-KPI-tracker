@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: 'My leaderboard — D3 Creator',
+  title: 'My leaderboard — D3 KPI Tracker',
 };
 
 export default async function CreatorMeLeaderboardPage() {

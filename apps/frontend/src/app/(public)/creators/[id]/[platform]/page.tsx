@@ -45,11 +45,11 @@ export async function generateMetadata({
   const key = platform.toLowerCase() as PlatformKey;
   const label = PLATFORM_LABELS[key] ?? platform;
   return {
-    title: `${id} on ${label} — D3 Creator`,
+    title: `${id} on ${label} — D3 KPI Tracker`,
     description: `Live ${label} stats for ${id} — followers, engagement, and recent posts.`,
     alternates: { canonical: `/creators/${id}/${platform}` },
     openGraph: {
-      title: `${id} on ${label} — D3 Creator`,
+      title: `${id} on ${label} — D3 KPI Tracker`,
       description: `Live ${label} stats for ${id} — followers, engagement, and recent posts.`,
     },
   };

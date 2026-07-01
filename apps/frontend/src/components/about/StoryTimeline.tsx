@@ -33,7 +33,7 @@ const MILESTONES: Milestone[] = [
   },
   {
     year: 'now',
-    title: 'D3 Creator goes public',
+    title: 'D3 KPI Tracker goes public',
     body: 'Live leaderboard launches. Every number visible, nothing hidden. The thesis on display.',
   },
 ];

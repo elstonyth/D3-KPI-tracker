@@ -248,7 +248,7 @@ export function D3LogoParticles({
   return (
     <canvas
       ref={canvasRef}
-      aria-label="D3 Creator logo"
+      aria-label="D3 KPI Tracker logo"
       role="img"
       className={className}
     />

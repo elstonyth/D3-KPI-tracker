@@ -45,11 +45,11 @@ export async function generateMetadata({
   const creator = await getCreatorByHandle(id).catch(() => null);
   const name = creator?.displayName ?? id;
   return {
-    title: `${name} — D3 Creator`,
+    title: `${name} — D3 KPI Tracker`,
     description: `Live follower counts, engagement, and growth for ${name} across every platform.`,
     alternates: { canonical: `/creators/${id}` },
     openGraph: {
-      title: `${name} — D3 Creator`,
+      title: `${name} — D3 KPI Tracker`,
       description: `Live follower counts, engagement, and growth for ${name} across every platform.`,
     },
   };

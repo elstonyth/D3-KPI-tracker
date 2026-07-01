@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: 'Account — D3 Creator',
+  title: 'Account — D3 KPI Tracker',
 };
 
 export default async function AccountPage() {

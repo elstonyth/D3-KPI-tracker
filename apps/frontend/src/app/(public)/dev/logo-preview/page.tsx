@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { D3LogoParticles } from '@gitroom/frontend/components/reactbits/d3-logo-particles';
 
 export const metadata: Metadata = {
-  title: 'Logo preview — D3 Creator',
+  title: 'Logo preview — D3 KPI Tracker',
   robots: { index: false, follow: false },
 };
 

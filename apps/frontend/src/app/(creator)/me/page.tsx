@@ -36,7 +36,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: 'My dashboard — D3 Creator',
+  title: 'My dashboard — D3 KPI Tracker',
 };
 
 function NoAccountsState() {

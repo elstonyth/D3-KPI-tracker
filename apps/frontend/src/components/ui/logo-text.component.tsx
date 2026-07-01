@@ -4,13 +4,13 @@ export const LogoTextComponent = () => {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/d3-logo.png"
-        alt="D3 Creator"
+        alt="D3 KPI Tracker"
         width={40}
         height={40}
         suppressHydrationWarning
       />
       <span className="text-[22px] font-semibold leading-none tracking-[-0.025em] text-fg">
-        D3 Creator
+        D3 KPI Tracker
       </span>
     </div>
   );

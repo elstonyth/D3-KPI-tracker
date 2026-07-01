@@ -10,7 +10,7 @@ import {
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'Leaderboard — D3 Creator',
+  title: 'Leaderboard — D3 KPI Tracker',
   description:
     'Top creators we grow at D3, ranked by followers, views, and engagement across every platform.',
   alternates: { canonical: '/leaderboard' },

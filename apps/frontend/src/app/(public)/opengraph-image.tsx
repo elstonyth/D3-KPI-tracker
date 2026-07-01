@@ -3,7 +3,7 @@ import { ImageResponse } from 'next/og';
 // Default social-share card for all public pages (Next auto-wires og:image +
 // twitter:image, with correct 1200x630 dimensions). Generated at the edge —
 // no static asset to maintain. Brand: #0A0A0D canvas, #F2E600 mark.
-export const alt = 'D3 Creator — login-free social analytics';
+export const alt = 'D3 KPI Tracker — login-free social analytics';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -32,7 +32,7 @@ export default function OpengraphImage() {
           }}
         />
         <div style={{ display: 'flex', fontSize: 40, fontWeight: 700 }}>
-          D3 Creator
+          D3 KPI Tracker
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>

@@ -47,7 +47,7 @@ export default async function CreatorLayout({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/d3-logo.png" alt="D3" width={28} height={28} />
               <span className="text-heading font-semibold tracking-[-0.02em] text-fg">
-                D3 Creator
+                D3 KPI Tracker
               </span>
             </Link>
             <nav className="flex items-center gap-1 text-label">
