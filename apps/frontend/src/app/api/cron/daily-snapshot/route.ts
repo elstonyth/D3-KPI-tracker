@@ -238,9 +238,10 @@ export async function GET(request: Request): Promise<Response> {
   // OUTSIDE the due-filter/PROFILES_PER_RUN batch (a trigger never stamps
   // last_scraped_at, so a pending FB profile stays "due" until its result
   // lands). Each check is one cheap GET; only a ready snapshot does the full
-  // upsert. A snapshot still building past FB_JOB_STALE_MS is abandoned so it
-  // re-triggers rather than holding the slot forever. (An orphaned job on a
-  // profile since marked private/not_found is dropped from listScrapeableProfiles
+  // upsert. A snapshot still building past FB_JOB_STALE_MS is abandoned
+  // (marked failed — which stamps last_scraped_at, so it re-triggers NEXT day,
+  // not the same tick) rather than holding the slot forever. (An orphaned job on
+  // a profile since marked private/not_found is dropped from listScrapeableProfiles
   // and simply won't be collected — a human reset re-scrapes it.)
   // `ordered` is the full sorted roster (defined above); use it — NOT `profiles`
   // — so pending jobs collect regardless of the PROFILES_PER_RUN trigger cap.
@@ -263,8 +264,11 @@ export async function GET(request: Request): Promise<Response> {
       const collected = await collectFacebook(snapshotId, profile.profile_url);
       if (!collected.ready) {
         const triggeredMs = Date.parse(profile.fb_snapshot_triggered_at ?? '');
+        // A job we can't age (missing/unparseable triggered_at from a partial
+        // write or manual edit) is exactly one to reset: treat it as stale so
+        // it's abandoned and re-triggered, never stranded "building" forever.
         const isStale =
-          Number.isFinite(triggeredMs) &&
+          !Number.isFinite(triggeredMs) ||
           Date.now() - triggeredMs > FB_JOB_STALE_MS;
         if (isStale) {
           // Give up on a snapshot Bright Data never finished building.
