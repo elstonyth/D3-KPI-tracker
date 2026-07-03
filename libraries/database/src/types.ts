@@ -47,6 +47,11 @@ export interface ProfileRow {
   nickname: string | null;
   scrape_status: ScrapeStatus;
   last_scraped_at: string | null;
+  /** Bright Data snapshot_id for an in-flight async Facebook scrape; NULL when
+   *  no FB job is pending. Facebook-only — always NULL on other platforms. */
+  fb_snapshot_id: string | null;
+  /** When the in-flight FB snapshot was triggered; used to expire stalled jobs. */
+  fb_snapshot_triggered_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -106,4 +111,3 @@ export interface DiscoveryCandidate {
   bucket: 'high' | 'review';
   matchedOn: 'exact' | 'folded' | 'core' | 'trigram';
 }
-

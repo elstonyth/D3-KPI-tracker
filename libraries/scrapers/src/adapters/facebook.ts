@@ -45,8 +45,17 @@
  * Single-dataset rework 2026-05-30.
  */
 
-import { runDataset } from '../brightdata-client';
-import { ProfileNotFoundError, ProfilePrivateError, ScrapeError } from '../errors';
+import {
+  runDataset,
+  triggerScrape,
+  collectSnapshot,
+  type RunDatasetOptions,
+} from '../brightdata-client';
+import {
+  ProfileNotFoundError,
+  ProfilePrivateError,
+  ScrapeError,
+} from '../errors';
 import type {
   ContentType,
   NormalizedPostSnapshot,
@@ -142,7 +151,9 @@ function pickContentType(p: BdFbPost): ContentType {
   if (p.has_video || (pickViews(p) ?? 0) > 0) return 'video';
   const type = (p.post_type ?? '').toLowerCase();
   if (type.includes('video') || type.includes('reel')) return 'video';
-  const attTypes = (p.attachments ?? []).map((a) => (a.type ?? '').toLowerCase());
+  const attTypes = (p.attachments ?? []).map((a) =>
+    (a.type ?? '').toLowerCase(),
+  );
   if (attTypes.includes('video')) return 'video';
   return 'image';
 }
@@ -159,7 +170,10 @@ function pickLikes(p: BdFbPost): number | null {
   if (typeof p.num_likes === 'number') return p.num_likes;
   const arr = p.num_likes_type;
   if (Array.isArray(arr) && arr.length > 0) {
-    return arr.reduce((sum, e) => sum + (typeof e.num === 'number' ? e.num : 0), 0);
+    return arr.reduce(
+      (sum, e) => sum + (typeof e.num === 'number' ? e.num : 0),
+      0,
+    );
   }
   return null;
 }
@@ -224,7 +238,11 @@ function mapProfile(
 function throwForErrorCode(p: BdFbPost, profileUrl: string): void {
   if (!p.error_code && !p.error) return;
   const code = (p.error_code || p.error || '').toLowerCase();
-  if (code.includes('private') || code.includes('restricted') || code.includes('login')) {
+  if (
+    code.includes('private') ||
+    code.includes('restricted') ||
+    code.includes('login')
+  ) {
     throw new ProfilePrivateError(PLATFORM, profileUrl);
   }
   if (
@@ -246,99 +264,171 @@ function throwForErrorCode(p: BdFbPost, profileUrl: string): void {
   );
 }
 
+// Poll budget/interval for the SYNCHRONOUS path only (manual scrape / admin
+// backfill via facebookAdapter.scrape). BD's posts collector resolves both
+// vanity and profile.php?id= URLs in ~50s and returns page_followers on each
+// item. Cap at 240s (4 min) to leave ~60s margin under Vercel's 300s Function
+// maxDuration for the upsert + response. The daily cron does NOT poll — it
+// triggers on one tick and collects on a later one (triggerFacebook /
+// collectFacebook), so no single invocation waits on a slow job.
+const FB_BUDGET_MS = 240_000;
+const FB_POLL_MS = 10_000;
+
+/**
+ * Build the Bright Data trigger options for a Facebook profile scrape. Shared
+ * by the synchronous adapter (runDataset) and the async trigger phase so the
+ * dataset id, post count, and validation live in one place.
+ *
+ * Deep-backfill knob: BrightData's posts dataset takes `num_of_posts` directly,
+ * so a deeper scrape is just a larger single request — no client-side cursor
+ * loop (unlike the TikHub IG/TikTok/Douyin adapters). The daily cron passes no
+ * opts, so num_of_posts stays POSTS_PER_SCRAPE (30) and the per-record bill is
+ * unchanged; only the admin /api/admin/backfill-posts route raises it via
+ * maxPosts. Bigger counts take BrightData longer to collect.
+ */
+function buildTriggerOptions(
+  profileUrl: string,
+  opts: ScrapeOptions = {},
+): RunDatasetOptions {
+  // Validate at the boundary: a 0/negative/non-integer maxPosts would only
+  // produce a misleading BrightData failure, so reject it loudly. Clamp the
+  // upper end so an unbounded value can't run up spend or blow the budget.
+  if (
+    opts.maxPosts != null &&
+    (!Number.isInteger(opts.maxPosts) || opts.maxPosts <= 0)
+  ) {
+    throw new ScrapeError(
+      'failed',
+      `Invalid maxPosts (${opts.maxPosts}); expected a positive integer.`,
+      PLATFORM,
+      profileUrl,
+    );
+  }
+  const numOfPosts = Math.min(
+    opts.maxPosts ?? POSTS_PER_SCRAPE,
+    MAX_POSTS_PER_SCRAPE,
+  );
+  return {
+    datasetId: POSTS_DATASET_ID,
+    inputs: [{ url: profileUrl, num_of_posts: numOfPosts }],
+    platform: PLATFORM,
+    profileUrl,
+    timeoutMs: FB_BUDGET_MS,
+    pollIntervalMs: FB_POLL_MS,
+  };
+}
+
+/**
+ * Parse a delivered Bright Data FB snapshot into the normalized shape. The
+ * profile is read from the first row (page_* fields ride on every item).
+ * Throws on an empty/malformed/errored snapshot. Shared by the sync adapter and
+ * the async collect path.
+ */
+function parseFacebookSnapshot(
+  items: BdFbPost[],
+  profileUrl: string,
+): ScrapeResult {
+  const first = items[0];
+  if (!first) {
+    // No rows at all — Bright Data can deliver an empty `ready` snapshot
+    // transiently (block/timeout on their side), and a live page with zero
+    // recent posts also returns nothing. Neither proves a dead page, and
+    // the cron's due-filter excludes `not_found` PERMANENTLY (it needs a
+    // human reset), so surface as retryable `failed`. `not_found` is
+    // reserved for an explicit per-row error_code (throwForErrorCode).
+    throw new ScrapeError(
+      'failed',
+      'Bright Data delivered no rows — empty/blocked collection or a page with no recent posts; retrying next tick',
+      PLATFORM,
+      profileUrl,
+    );
+  }
+
+  // A per-row error_code is BD telling us why a specific URL failed.
+  throwForErrorCode(first, profileUrl);
+
+  // No error code but no page identity either → malformed/placeholder row,
+  // not a confirmed dead page. Retryable for the same reason as above.
+  if (
+    first.page_followers == null &&
+    !first.page_name &&
+    !first.profile_id &&
+    !first.post_id
+  ) {
+    throw new ScrapeError(
+      'failed',
+      'Bright Data row carries no page identity — treating as transient; retrying next tick',
+      PLATFORM,
+      profileUrl,
+    );
+  }
+
+  const posts: NormalizedPostSnapshot[] = [];
+  for (const p of items) {
+    // Skip error/empty rows mixed into the snapshot (include_errors=true).
+    if (p.error_code || p.error) continue;
+    const mapped = mapPost(p);
+    if (mapped) posts.push(mapped);
+  }
+
+  return {
+    profile: mapProfile(first, posts),
+    posts,
+  };
+}
+
+/**
+ * Trigger an async Facebook snapshot; returns the Bright Data snapshot_id to
+ * collect on a later run with collectFacebook. Fast (~seconds) — no polling, so
+ * the cron can start a slow FB job without blocking one function on it.
+ */
+export async function triggerFacebook(
+  profileUrl: string,
+  opts: ScrapeOptions = {},
+): Promise<string> {
+  return triggerScrape(buildTriggerOptions(profileUrl, opts));
+}
+
+/** Result of a one-shot Facebook collect: still building, or ready + parsed. */
+export type CollectFacebookResult =
+  | { ready: false }
+  | { ready: true; result: ScrapeResult };
+
+/**
+ * Collect a previously-triggered Facebook snapshot in a single pass. Returns
+ * { ready: false } while Bright Data is still building it (retry next tick), or
+ * the parsed ScrapeResult once ready. Throws a classified error on a failed/
+ * empty/malformed snapshot, same as the synchronous adapter.
+ */
+export async function collectFacebook(
+  snapshotId: string,
+  profileUrl: string,
+): Promise<CollectFacebookResult> {
+  const collected = await collectSnapshot<BdFbPost>(snapshotId, {
+    platform: PLATFORM,
+    profileUrl,
+  });
+  if (!collected.ready) return { ready: false };
+  return {
+    ready: true,
+    result: parseFacebookSnapshot(collected.items, profileUrl),
+  };
+}
+
 export const facebookAdapter: PlatformAdapter = {
   platform: 'facebook',
   sourceId: `brightdata:${POSTS_DATASET_ID}`,
-  async scrape(profileUrl: string, opts: ScrapeOptions = {}): Promise<ScrapeResult> {
-    // Single dataset call. BD's posts collector resolves both vanity and
-    // profile.php?id= URLs in ~50s and returns page_followers on each item.
-    // Cap at 240s (4 min) to leave ~60s margin under Vercel's 300s Function
-    // maxDuration for Supabase round-trips + status update + JSON response.
-    const FB_BUDGET_MS = 240_000;
-    const FB_POLL_MS = 10_000;
-
-    // Deep-backfill knob. BrightData's posts dataset takes `num_of_posts`
-    // directly, so a deeper scrape is just a larger single request — no
-    // client-side cursor loop (unlike the TikHub IG/TikTok/Douyin adapters).
-    // The daily cron passes no opts, so num_of_posts stays POSTS_PER_SCRAPE
-    // (30) and the per-record BrightData bill is unchanged; only the admin
-    // one-off /api/admin/backfill-posts route raises it via maxPosts. Bigger
-    // counts also take BrightData longer to collect — keep them under the
-    // 240s budget (a modest count both bounds cost and avoids a timeout).
-    // Validate at the boundary: a 0/negative/non-integer maxPosts would only
-    // produce a misleading BrightData failure, so reject it loudly. Clamp the
-    // upper end so an unbounded value can't run up spend or blow the budget.
-    if (
-      opts.maxPosts != null &&
-      (!Number.isInteger(opts.maxPosts) || opts.maxPosts <= 0)
-    ) {
-      throw new ScrapeError(
-        'failed',
-        `Invalid maxPosts (${opts.maxPosts}); expected a positive integer.`,
-        PLATFORM,
-        profileUrl,
-      );
-    }
-    const numOfPosts = Math.min(
-      opts.maxPosts ?? POSTS_PER_SCRAPE,
-      MAX_POSTS_PER_SCRAPE,
+  async scrape(
+    profileUrl: string,
+    opts: ScrapeOptions = {},
+  ): Promise<ScrapeResult> {
+    // Synchronous path (manual scrape / admin backfill): trigger → poll → fetch
+    // in one call, since those callers have a user waiting on the result. The
+    // daily cron uses the async triggerFacebook / collectFacebook split instead
+    // so a slow Bright Data job can't blow one function's budget.
+    const items = await runDataset<BdFbPost>(
+      buildTriggerOptions(profileUrl, opts),
     );
-
-    const items = await runDataset<BdFbPost>({
-      datasetId: POSTS_DATASET_ID,
-      inputs: [{ url: profileUrl, num_of_posts: numOfPosts }],
-      platform: PLATFORM,
-      profileUrl,
-      timeoutMs: FB_BUDGET_MS,
-      pollIntervalMs: FB_POLL_MS,
-    });
-
-    const first = items[0];
-    if (!first) {
-      // No rows at all — Bright Data can deliver an empty `ready` snapshot
-      // transiently (block/timeout on their side), and a live page with zero
-      // recent posts also returns nothing. Neither proves a dead page, and
-      // the cron's due-filter excludes `not_found` PERMANENTLY (it needs a
-      // human reset), so surface as retryable `failed`. `not_found` is
-      // reserved for an explicit per-row error_code (throwForErrorCode).
-      throw new ScrapeError(
-        'failed',
-        'Bright Data delivered no rows — empty/blocked collection or a page with no recent posts; retrying next tick',
-        PLATFORM,
-        profileUrl,
-      );
-    }
-
-    // A per-row error_code is BD telling us why a specific URL failed.
-    throwForErrorCode(first, profileUrl);
-
-    // No error code but no page identity either → malformed/placeholder row,
-    // not a confirmed dead page. Retryable for the same reason as above.
-    if (
-      first.page_followers == null &&
-      !first.page_name &&
-      !first.profile_id &&
-      !first.post_id
-    ) {
-      throw new ScrapeError(
-        'failed',
-        'Bright Data row carries no page identity — treating as transient; retrying next tick',
-        PLATFORM,
-        profileUrl,
-      );
-    }
-
-    const posts: NormalizedPostSnapshot[] = [];
-    for (const p of items) {
-      // Skip error/empty rows mixed into the snapshot (include_errors=true).
-      if (p.error_code || p.error) continue;
-      const mapped = mapPost(p);
-      if (mapped) posts.push(mapped);
-    }
-
-    return {
-      profile: mapProfile(first, posts),
-      posts,
-    };
+    return parseFacebookSnapshot(items, profileUrl);
   },
 };

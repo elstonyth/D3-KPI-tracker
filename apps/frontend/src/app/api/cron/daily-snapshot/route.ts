@@ -26,12 +26,21 @@ import { timingSafeEqual } from 'node:crypto';
 
 import { NextResponse } from 'next/server';
 
-import { runScraper, ScrapeError } from '@d3/scrapers';
 import {
+  runScraper,
+  ScrapeError,
+  triggerFacebook,
+  collectFacebook,
+  type NormalizedPostSnapshot,
+  type NormalizedProfileSnapshot,
+} from '@d3/scrapers';
+import {
+  clearFacebookJob,
   listScrapeableProfiles,
   persistMediaForPosts,
   POST_MEDIA_DEADLINE_MS,
   requeueFacebookForFreshPost,
+  setFacebookJob,
   setProfileStatus,
   upsertPostSnapshots,
   upsertProfileSnapshot,
@@ -41,7 +50,6 @@ import {
   MIN_SCRAPE_BUDGET_MS,
   WRAPUP_RESERVE_MS,
   facebookRefreshTarget,
-  minScrapeBudgetMsFor,
   orderFacebookFirst,
   scrapeTimeoutMsFor,
 } from '@gitroom/frontend/lib/scrape-budget';
@@ -65,6 +73,15 @@ export const dynamic = 'force-dynamic';
 // See https://vercel.com/docs/queues
 const PROFILES_PER_RUN = 5;
 
+// Facebook async trigger-then-collect knobs. A trigger is a single Bright Data
+// POST (~seconds); the client already bounds each request at 30s, so this outer
+// cap is just belt-and-suspenders. A snapshot still building after the stale
+// window is abandoned (marked failed, cleared) so it re-triggers next day
+// instead of holding the profile's slot forever — the hourly cron gives ~2
+// collect attempts before that.
+const FB_TRIGGER_TIMEOUT_MS = 30_000;
+const FB_JOB_STALE_MS = 2 * 60 * 60 * 1000;
+
 // Per-scrape timeout caps, start floors, and the wrap-up reserve live in
 // lib/scrape-budget.ts. They are platform-aware: Facebook's Bright Data
 // collector needs up to ~250s, everything else keeps the 120s cap — a flat
@@ -80,9 +97,46 @@ interface ProfileResult {
     | 'private'
     | 'not_found'
     | 'throttled'
-    | 'handle_changed';
+    | 'handle_changed'
+    // Facebook async phases (not scrape_status values — observability only):
+    // an FB snapshot was just triggered, or is still building this tick.
+    | 'triggered'
+    | 'collecting';
   posts_written?: number;
   error?: string;
+}
+
+/**
+ * Persist a scrape result: profile snapshot → post media (best-effort, budget
+ * capped) → post snapshots → status 'ok'. Shared by the synchronous per-platform
+ * loop and the async Facebook collect pass. Returns the post count written.
+ */
+async function persistScrapeResult(
+  profileId: string,
+  snap: NormalizedProfileSnapshot,
+  posts: NormalizedPostSnapshot[],
+  startedAt: Date,
+): Promise<number> {
+  await upsertProfileSnapshot(profileId, snap);
+  // Copy post cover images into Storage while their signed CDN URLs are still
+  // valid. Cap by the function's REMAINING wall-clock (minus a wrap-up reserve)
+  // so several profiles' persist steps can't compound past maxDuration; when the
+  // budget is exhausted the deadline is 0 → persist is skipped and the snapshot
+  // (with original CDN URLs) is still written; the backfill heals it later.
+  const remainingMs =
+    maxDuration * 1000 - (Date.now() - startedAt.getTime()) - WRAPUP_RESERVE_MS;
+  const mediaDeadlineMs = Math.max(
+    0,
+    Math.min(POST_MEDIA_DEADLINE_MS, remainingMs),
+  );
+  const persistedPosts = await persistMediaForPosts(
+    profileId,
+    posts,
+    mediaDeadlineMs,
+  );
+  const { written } = await upsertPostSnapshots(profileId, persistedPosts);
+  await setProfileStatus(profileId, 'ok');
+  return written;
 }
 
 function assertAuth(request: Request): Response | null {
@@ -162,10 +216,10 @@ export async function GET(request: Request): Promise<Response> {
   );
 
   const totalEligible = due.length;
-  // Facebook first within the batch: only ~1 FB scrape fits per tick at its
-  // 250s cap, so it must start while the full wall-clock window remains — an
-  // FB profile reached mid-batch would only ever see a partial window and be
-  // deferred every tick.
+  // Facebook first within the batch: an FB "scrape" here is now just a cheap
+  // trigger (the collect happens on a later tick), so ordering it first gets the
+  // fast POSTs out of the way and leaves the wall-clock window for the
+  // synchronous TikHub scrapes that actually consume it.
   const profiles = orderFacebookFirst(due.slice(0, PROFILES_PER_RUN));
   const skipped = Math.max(0, totalEligible - profiles.length);
 
@@ -179,7 +233,164 @@ export async function GET(request: Request): Promise<Response> {
 
   const results: ProfileResult[] = [];
 
+  // --- Facebook async collect pass -----------------------------------------
+  // Collect any in-flight FB snapshots triggered on a previous tick. Runs
+  // OUTSIDE the due-filter/PROFILES_PER_RUN batch (a trigger never stamps
+  // last_scraped_at, so a pending FB profile stays "due" until its result
+  // lands). Each check is one cheap GET; only a ready snapshot does the full
+  // upsert. A snapshot still building past FB_JOB_STALE_MS is abandoned so it
+  // re-triggers rather than holding the slot forever. (An orphaned job on a
+  // profile since marked private/not_found is dropped from listScrapeableProfiles
+  // and simply won't be collected — a human reset re-scrapes it.)
+  const pendingFb = ordered.filter((p) => p.fb_snapshot_id);
+  for (const profile of pendingFb) {
+    const snapshotId = profile.fb_snapshot_id as string;
+    // A ready collect does an upsert + media persist, so guard the same way as a
+    // scrape: if too little wall-clock remains, leave the job and collect next tick.
+    const budgetMs =
+      maxDuration * 1000 -
+      (Date.now() - startedAt.getTime()) -
+      WRAPUP_RESERVE_MS;
+    if (budgetMs < MIN_SCRAPE_BUDGET_MS) {
+      console.warn('[daily-snapshot] budget low, deferring FB collects', {
+        budget_ms: Math.max(0, budgetMs),
+      });
+      break;
+    }
+    try {
+      const collected = await collectFacebook(snapshotId, profile.profile_url);
+      if (!collected.ready) {
+        const triggeredMs = Date.parse(profile.fb_snapshot_triggered_at ?? '');
+        const isStale =
+          Number.isFinite(triggeredMs) &&
+          Date.now() - triggeredMs > FB_JOB_STALE_MS;
+        if (isStale) {
+          // Give up on a snapshot Bright Data never finished building.
+          await clearFacebookJob(profile.id);
+          try {
+            await setProfileStatus(profile.id, 'failed');
+          } catch {
+            // Status write failed — job already cleared; loop continues.
+          }
+          console.warn('[daily-snapshot] FB snapshot stale, abandoning', {
+            profile_id: profile.id,
+            snapshot_id: snapshotId,
+          });
+          results.push({
+            profile_id: profile.id,
+            platform: profile.platform,
+            handle: profile.handle,
+            status: 'failed',
+            error: `Bright Data snapshot ${snapshotId} still building after ${FB_JOB_STALE_MS}ms — abandoned`,
+          });
+        } else {
+          // Still building — try again next tick.
+          results.push({
+            profile_id: profile.id,
+            platform: profile.platform,
+            handle: profile.handle,
+            status: 'collecting',
+          });
+        }
+        continue;
+      }
+
+      const written = await persistScrapeResult(
+        profile.id,
+        collected.result.profile,
+        collected.result.posts,
+        startedAt,
+      );
+      await clearFacebookJob(profile.id);
+      results.push({
+        profile_id: profile.id,
+        platform: profile.platform,
+        handle: profile.handle,
+        status: 'ok',
+        posts_written: written,
+      });
+    } catch (err) {
+      const status = err instanceof ScrapeError ? err.status : 'failed';
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('[daily-snapshot] FB collect failed', {
+        profile_id: profile.id,
+        snapshot_id: snapshotId,
+        status,
+        error: message,
+      });
+      // Terminal for this job: clear it so tomorrow re-triggers a fresh one.
+      try {
+        await clearFacebookJob(profile.id);
+      } catch {
+        // ignore — best-effort cleanup
+      }
+      try {
+        await setProfileStatus(profile.id, status);
+      } catch {
+        // ignore — loop continues
+      }
+      results.push({
+        profile_id: profile.id,
+        platform: profile.platform,
+        handle: profile.handle,
+        status,
+        error: message,
+      });
+    }
+  }
+
   for (const profile of profiles) {
+    // Facebook is async (trigger-then-collect) so a slow Bright Data job can't
+    // block one function past its budget. If a job is already in flight, the
+    // collect pass above owns it — skip. Otherwise TRIGGER a new snapshot
+    // (fast: one POST) and store its id for a later tick to collect.
+    if (profile.platform === 'facebook') {
+      if (profile.fb_snapshot_id) continue;
+      const budgetMs =
+        maxDuration * 1000 -
+        (Date.now() - startedAt.getTime()) -
+        WRAPUP_RESERVE_MS;
+      if (budgetMs < FB_TRIGGER_TIMEOUT_MS) {
+        // Not enough budget to trigger safely — leave it due for the next tick.
+        continue;
+      }
+      try {
+        const snapshotId = await withTimeout(
+          triggerFacebook(profile.profile_url),
+          FB_TRIGGER_TIMEOUT_MS,
+        );
+        await setFacebookJob(profile.id, snapshotId);
+        results.push({
+          profile_id: profile.id,
+          platform: profile.platform,
+          handle: profile.handle,
+          status: 'triggered',
+        });
+      } catch (err) {
+        const status = err instanceof ScrapeError ? err.status : 'failed';
+        const message = err instanceof Error ? err.message : String(err);
+        console.error('[daily-snapshot] FB trigger failed', {
+          profile_id: profile.id,
+          handle: profile.handle,
+          status,
+          error: message,
+        });
+        try {
+          await setProfileStatus(profile.id, status);
+        } catch {
+          // ignore — loop continues
+        }
+        results.push({
+          profile_id: profile.id,
+          platform: profile.platform,
+          handle: profile.handle,
+          status,
+          error: message,
+        });
+      }
+      continue;
+    }
+
     // Cap each scrape by the smaller of its platform's cap and the function's
     // remaining wall-clock (reserving WRAPUP_RESERVE_MS for the upsert + status
     // write). A single hung upstream then can't burn the whole 300s window and
@@ -192,24 +403,9 @@ export async function GET(request: Request): Promise<Response> {
       WRAPUP_RESERVE_MS;
     if (scrapeBudgetMs < MIN_SCRAPE_BUDGET_MS) {
       console.warn('[daily-snapshot] budget low, deferring remainder', {
-        deferred: profiles.length - results.length,
         budget_ms: Math.max(0, scrapeBudgetMs),
       });
       break;
-    }
-    // Platform floor: Facebook needs its full window up front — starting it on
-    // a partial one would falsely fail it (and still bill Bright Data for the
-    // abandoned records). Skip WITHOUT stamping so the profile stays due, and
-    // let cheaper platforms later in the batch use the remaining budget.
-    const platformFloorMs = minScrapeBudgetMsFor(profile.platform);
-    if (scrapeBudgetMs < platformFloorMs) {
-      console.warn('[daily-snapshot] budget below platform floor, deferring', {
-        profile_id: profile.id,
-        platform: profile.platform,
-        floor_ms: platformFloorMs,
-        budget_ms: scrapeBudgetMs,
-      });
-      continue;
     }
     const scrapeTimeoutMs = Math.min(
       scrapeTimeoutMsFor(profile.platform),
@@ -222,27 +418,12 @@ export async function GET(request: Request): Promise<Response> {
         scrapeTimeoutMs,
       );
 
-      await upsertProfileSnapshot(profile.id, snap);
-      // Copy post cover images into Storage while their signed CDN URLs are
-      // still valid, so thumbnails survive signature expiry (best-effort).
-      // Cap the persist step by the function's REMAINING wall-clock budget
-      // (minus a reserve for the upsert + status write), so several profiles'
-      // persist steps can't compound past maxDuration. When the budget is
-      // exhausted the deadline is 0 → persist is skipped and the snapshot
-      // (with original CDN URLs) is still written; the backfill heals later.
-      const elapsedMs = Date.now() - startedAt.getTime();
-      const remainingMs = maxDuration * 1000 - elapsedMs - WRAPUP_RESERVE_MS;
-      const mediaDeadlineMs = Math.max(
-        0,
-        Math.min(POST_MEDIA_DEADLINE_MS, remainingMs),
-      );
-      const persistedPosts = await persistMediaForPosts(
+      const written = await persistScrapeResult(
         profile.id,
+        snap,
         posts,
-        mediaDeadlineMs,
+        startedAt,
       );
-      const { written } = await upsertPostSnapshots(profile.id, persistedPosts);
-      await setProfileStatus(profile.id, 'ok');
 
       // Same-day Facebook refresh: a cross-posted video's highest view count is
       // usually on Facebook, but FB scrapes run early-UTC (before the day's post)
@@ -307,8 +488,10 @@ export async function GET(request: Request): Promise<Response> {
     finished_at: finishedAt.toISOString(),
     elapsed_ms: finishedAt.getTime() - startedAt.getTime(),
     total_eligible: totalEligible,
+    // processed counts every action taken this tick: synchronous scrapes, plus
+    // the async Facebook trigger/collect steps (statuses 'triggered'/'collecting').
     processed: results.length,
-    deferred: profiles.length - results.length,
+    fb_pending_checked: pendingFb.length,
     skipped,
     capacity_per_run: PROFILES_PER_RUN,
     by_status: results.reduce<Record<string, number>>((acc, r) => {

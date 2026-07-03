@@ -7,6 +7,11 @@
 
 export { runScraper, SUPPORTED_PLATFORMS } from './dispatch';
 export {
+  triggerFacebook,
+  collectFacebook,
+  type CollectFacebookResult,
+} from './adapters/facebook';
+export {
   ScrapeError,
   ApifyTimeoutError,
   ApifyEmptyResultError,
