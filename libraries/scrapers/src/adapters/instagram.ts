@@ -390,18 +390,11 @@ export const instagramAdapter: PlatformAdapter = {
         platform: PLATFORM,
         profileUrl,
       }),
-      fetchPostsPage().catch((err) => {
-        // Posts are supplementary — a private/missing posts tab must not sink
-        // the profile snapshot (followers etc.). The profile response below
-        // still decides not_found/private. Degrade to empty posts.
-        if (
-          err instanceof ProfilePrivateError ||
-          err instanceof ProfileNotFoundError
-        ) {
-          return {} as IgPostsResponse;
-        }
-        throw err;
-      }),
+      // Posts are supplementary — ANY posts-endpoint failure (including the
+      // TikHub v2 fetch_user_posts 400s that began 2026-07) must not sink the
+      // profile snapshot (followers etc.). Degrade to empty posts; the profile
+      // response below is the source of truth for not_found / private.
+      fetchPostsPage().catch(() => ({}) as IgPostsResponse),
       // The reels feed is strictly supplementary on top of the grid feed —
       // any failure degrades to grid-only rather than sinking the scrape.
       fetchReelsPage().catch(() => ({}) as IgPostsResponse),
