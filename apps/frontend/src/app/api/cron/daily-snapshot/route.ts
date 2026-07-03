@@ -242,6 +242,8 @@ export async function GET(request: Request): Promise<Response> {
   // re-triggers rather than holding the slot forever. (An orphaned job on a
   // profile since marked private/not_found is dropped from listScrapeableProfiles
   // and simply won't be collected — a human reset re-scrapes it.)
+  // `ordered` is the full sorted roster (defined above); use it — NOT `profiles`
+  // — so pending jobs collect regardless of the PROFILES_PER_RUN trigger cap.
   const pendingFb = ordered.filter((p) => p.fb_snapshot_id);
   for (const profile of pendingFb) {
     const snapshotId = profile.fb_snapshot_id as string;
