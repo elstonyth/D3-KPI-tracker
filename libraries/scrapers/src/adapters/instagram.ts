@@ -355,6 +355,29 @@ async function collectFeed(
   return items;
 }
 
+/**
+ * Best-effort supplementary feed fetch. A posts/reels feed failing must not sink
+ * the profile snapshot (followers etc.) — but a silent swallow would hide a real
+ * TikHub outage, so log the degradation before returning empty. The profile
+ * response remains the source of truth for not_found / private.
+ */
+async function bestEffortFeed(
+  label: 'posts' | 'reels',
+  profileUrl: string,
+  fetchFn: () => Promise<IgPostsResponse>,
+): Promise<IgPostsResponse> {
+  try {
+    return await fetchFn();
+  } catch (err) {
+    console.warn(
+      `[scraper:instagram] ${label} feed degraded to empty for ${profileUrl}: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+    return {} as IgPostsResponse;
+  }
+}
+
 export const instagramAdapter: PlatformAdapter = {
   platform: 'instagram',
   sourceId: 'tikhub:instagram/v3',
@@ -390,21 +413,13 @@ export const instagramAdapter: PlatformAdapter = {
         platform: PLATFORM,
         profileUrl,
       }),
-      fetchPostsPage().catch((err) => {
-        // Posts are supplementary — a private/missing posts tab must not sink
-        // the profile snapshot (followers etc.). The profile response below
-        // still decides not_found/private. Degrade to empty posts.
-        if (
-          err instanceof ProfilePrivateError ||
-          err instanceof ProfileNotFoundError
-        ) {
-          return {} as IgPostsResponse;
-        }
-        throw err;
-      }),
-      // The reels feed is strictly supplementary on top of the grid feed —
-      // any failure degrades to grid-only rather than sinking the scrape.
-      fetchReelsPage().catch(() => ({}) as IgPostsResponse),
+      // Posts + reels are supplementary — ANY feed failure (including the TikHub
+      // v2 fetch_user_posts 400s that began 2026-07) degrades to empty rather
+      // than sinking the profile snapshot. bestEffortFeed logs the degradation
+      // so a real outage stays visible; the profile response below is the source
+      // of truth for not_found / private.
+      bestEffortFeed('posts', profileUrl, () => fetchPostsPage()),
+      bestEffortFeed('reels', profileUrl, () => fetchReelsPage()),
     ]);
 
     const user = unwrapUser(profileResp);
