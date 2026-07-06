@@ -34,6 +34,8 @@ export {
   upsertProfileSnapshot,
   upsertPostSnapshots,
   setProfileStatus,
+  setFacebookJob,
+  clearFacebookJob,
   requeueFacebookForFreshPost,
   type ProfileSnapshotInput,
   type PostSnapshotInput,

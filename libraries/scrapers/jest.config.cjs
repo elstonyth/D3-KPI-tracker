@@ -21,5 +21,5 @@ module.exports = {
       },
     ],
   },
-  testMatch: ['<rootDir>/src/adapters/*.test.ts'],
+  testMatch: ['<rootDir>/src/**/*.test.ts'],
 };

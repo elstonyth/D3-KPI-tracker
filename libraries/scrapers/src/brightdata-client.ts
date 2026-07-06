@@ -28,7 +28,12 @@ const DEFAULT_BASE = 'https://api.brightdata.com/datasets/v3';
 /** Per-request network timeout (trigger/progress/snapshot each). */
 const PER_REQUEST_TIMEOUT_MS = 30_000;
 
-type ProgressStatus = 'running' | 'ready' | 'failed' | 'collecting' | 'building';
+type ProgressStatus =
+  | 'running'
+  | 'ready'
+  | 'failed'
+  | 'collecting'
+  | 'building';
 
 interface ProgressResponse {
   status?: ProgressStatus;
@@ -41,15 +46,19 @@ interface TriggerResponse {
   snapshot_id?: string;
 }
 
-export interface RunDatasetOptions {
-  /** Bright Data dataset_id, e.g. 'gd_lkay758p1eanlolqw8'. */
-  datasetId: string;
-  /** Items to scrape — each becomes one row in the result snapshot. */
-  inputs: Array<{ url: string } | Record<string, unknown>>;
+/** Minimal context for a progress/snapshot call — just error-message tagging. */
+export interface DatasetContext {
   /** Platform tag for error messages. */
   platform: string;
   /** Profile URL — surfaced in error context. */
   profileUrl: string;
+}
+
+export interface RunDatasetOptions extends DatasetContext {
+  /** Bright Data dataset_id, e.g. 'gd_lkay758p1eanlolqw8'. */
+  datasetId: string;
+  /** Items to scrape — each becomes one row in the result snapshot. */
+  inputs: Array<{ url: string } | Record<string, unknown>>;
   /** Total budget in ms. Default 300_000 (5 min). */
   timeoutMs?: number;
   /** Poll interval in ms. Default 5_000 (5 s). */
@@ -89,7 +98,11 @@ function looksLikeNotFound(msg: string): boolean {
 
 function looksLikePrivate(msg: string): boolean {
   const m = msg.toLowerCase();
-  return m.includes('private') || m.includes('restricted') || m.includes('login required');
+  return (
+    m.includes('private') ||
+    m.includes('restricted') ||
+    m.includes('login required')
+  );
 }
 
 /**
@@ -209,7 +222,14 @@ async function brightdataFetchJson<T>(
   }
 }
 
-async function triggerScrape(opts: RunDatasetOptions): Promise<string> {
+/**
+ * Trigger a Bright Data snapshot and return its snapshot_id WITHOUT polling.
+ *
+ * The async trigger phase: a caller stores the returned id and collects the
+ * result on a later run (collectSnapshot), so no single invocation blocks on a
+ * slow collector. runDataset uses this internally for the synchronous path.
+ */
+export async function triggerScrape(opts: RunDatasetOptions): Promise<string> {
   const path = `trigger?dataset_id=${encodeURIComponent(opts.datasetId)}&format=json&include_errors=true`;
   const body = await brightdataFetchJson<TriggerResponse>(
     'POST',
@@ -229,6 +249,50 @@ async function triggerScrape(opts: RunDatasetOptions): Promise<string> {
   return body.snapshot_id;
 }
 
+/** Map a `status:"failed"` progress body onto our status taxonomy and throw. */
+function throwForFailedProgress(
+  body: ProgressResponse,
+  ctx: DatasetContext,
+): never {
+  const msg = body.message || 'collector failed';
+  if (looksLikePrivate(msg)) {
+    // Re-throw via the higher-level adapter check — keep client generic.
+    throw new ScrapeError(
+      'private',
+      `Bright Data: ${msg}`,
+      ctx.platform,
+      ctx.profileUrl,
+    );
+  }
+  if (looksLikeNotFound(msg)) {
+    throw new ProfileNotFoundError(ctx.platform, ctx.profileUrl);
+  }
+  throw new ScrapeError(
+    'failed',
+    `Bright Data: ${msg}`,
+    ctx.platform,
+    ctx.profileUrl,
+  );
+}
+
+/** One progress GET. Returns 'ready' or 'building'; throws on a failed collector. */
+async function checkProgress(
+  snapshotId: string,
+  ctx: DatasetContext,
+): Promise<'ready' | 'building'> {
+  const body = await brightdataFetchJson<ProgressResponse>(
+    'GET',
+    `progress/${encodeURIComponent(snapshotId)}`,
+    ctx.platform,
+    ctx.profileUrl,
+  );
+  const status = (body.status || '').toLowerCase();
+  if (status === 'ready') return 'ready';
+  if (status === 'failed') throwForFailedProgress(body, ctx);
+  // running / collecting / building → not done yet
+  return 'building';
+}
+
 async function pollProgress(
   snapshotId: string,
   opts: RunDatasetOptions,
@@ -238,26 +302,7 @@ async function pollProgress(
   const deadline = Date.now() + budget;
 
   while (Date.now() < deadline) {
-    const body = await brightdataFetchJson<ProgressResponse>(
-      'GET',
-      `progress/${encodeURIComponent(snapshotId)}`,
-      opts.platform,
-      opts.profileUrl,
-    );
-    const status = (body.status || '').toLowerCase();
-
-    if (status === 'ready') return;
-    if (status === 'failed') {
-      const msg = body.message || 'collector failed';
-      if (looksLikePrivate(msg)) {
-        // Re-throw via the higher-level adapter check — keep client generic.
-        throw new ScrapeError('private', `Bright Data: ${msg}`, opts.platform, opts.profileUrl);
-      }
-      if (looksLikeNotFound(msg)) {
-        throw new ProfileNotFoundError(opts.platform, opts.profileUrl);
-      }
-      throw new ScrapeError('failed', `Bright Data: ${msg}`, opts.platform, opts.profileUrl);
-    }
+    if ((await checkProgress(snapshotId, opts)) === 'ready') return;
     // running / collecting / building → keep polling
     await new Promise((r) => setTimeout(r, interval));
   }
@@ -270,35 +315,94 @@ async function pollProgress(
   );
 }
 
+/**
+ * Fetch a snapshot's items.
+ *
+ * Returns `{ ready: false }` for the known race where `/progress` flips to
+ * `ready` a beat before `/snapshot?format=json` has materialized the file:
+ * in that window the snapshot endpoint returns a `{ status: 'building' | ... }`
+ * envelope (often HTTP 202) instead of the array. That is NOT a failure — the
+ * caller retries. A genuinely malformed payload (no array, no status) throws.
+ */
 async function fetchSnapshot<T>(
   snapshotId: string,
-  opts: RunDatasetOptions,
-): Promise<T[]> {
-  const body = await brightdataFetchJson<T[] | { data?: T[] }>(
+  ctx: DatasetContext,
+): Promise<CollectResult<T>> {
+  const body = await brightdataFetchJson<T[] | { data?: T[]; status?: string }>(
     'GET',
     `snapshot/${encodeURIComponent(snapshotId)}?format=json`,
-    opts.platform,
-    opts.profileUrl,
+    ctx.platform,
+    ctx.profileUrl,
   );
-  if (Array.isArray(body)) return body;
+  if (Array.isArray(body)) return { ready: true, items: body };
   // Some endpoints wrap in { data: [...] } — tolerate.
   if (body && Array.isArray((body as { data?: T[] }).data)) {
-    return (body as { data: T[] }).data;
+    return { ready: true, items: (body as { data: T[] }).data };
+  }
+  // A { status: <non-ready> } envelope = file not materialized yet → retry.
+  const status = (body as { status?: string } | null)?.status;
+  if (typeof status === 'string' && status.toLowerCase() !== 'ready') {
+    return { ready: false };
   }
   throw new ScrapeError(
     'failed',
     'Bright Data snapshot returned non-array payload',
-    opts.platform,
-    opts.profileUrl,
+    ctx.platform,
+    ctx.profileUrl,
   );
 }
 
 /**
  * Run a Bright Data Web Scraper dataset end-to-end:
  * trigger → poll until ready → fetch snapshot items.
+ *
+ * After `/progress` reports ready the snapshot file can lag a few seconds, so
+ * the fetch is retried (bounded by the same budget) until it materializes.
  */
-export async function runDataset<T = unknown>(opts: RunDatasetOptions): Promise<T[]> {
+export async function runDataset<T = unknown>(
+  opts: RunDatasetOptions,
+): Promise<T[]> {
   const snapshotId = await triggerScrape(opts);
   await pollProgress(snapshotId, opts);
-  return fetchSnapshot<T>(snapshotId, opts);
+
+  const interval = opts.pollIntervalMs ?? 5_000;
+  // pollProgress already consumed part of the budget; give the materialization
+  // wait a bounded tail rather than the full budget again.
+  const deadline = Date.now() + Math.min(opts.timeoutMs ?? 300_000, 60_000);
+  for (;;) {
+    const fetched = await fetchSnapshot<T>(snapshotId, opts);
+    if (fetched.ready) return fetched.items;
+    if (Date.now() >= deadline) {
+      throw new ScrapeError(
+        'failed',
+        `Bright Data snapshot ${snapshotId} reported ready but never materialized its file`,
+        opts.platform,
+        opts.profileUrl,
+      );
+    }
+    await new Promise((r) => setTimeout(r, interval));
+  }
+}
+
+/** Result of a one-shot collect: still building, or ready with the items. */
+export type CollectResult<T> = { ready: false } | { ready: true; items: T[] };
+
+/**
+ * Collect an async snapshot in a SINGLE pass — one progress check, then fetch
+ * only if ready. Unlike runDataset it never polls/blocks: a still-building
+ * snapshot returns `{ ready: false }` so the caller can try again on a later
+ * run. A failed collector throws a classified ScrapeError (private/not_found/
+ * failed), same as the synchronous path.
+ */
+export async function collectSnapshot<T = unknown>(
+  snapshotId: string,
+  ctx: DatasetContext,
+): Promise<CollectResult<T>> {
+  // checkProgress throws on a failed collector (private/not_found/failed).
+  if ((await checkProgress(snapshotId, ctx)) !== 'ready') {
+    return { ready: false };
+  }
+  // Progress says ready — but the snapshot file may lag a few seconds. fetch
+  // returns { ready: false } in that window so the caller retries next run.
+  return fetchSnapshot<T>(snapshotId, ctx);
 }

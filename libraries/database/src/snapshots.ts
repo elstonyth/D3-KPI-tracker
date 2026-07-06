@@ -340,6 +340,46 @@ export async function requeueFacebookForFreshPost(
   return { requeued: res.data?.length ?? 0 };
 }
 
+/**
+ * Record an in-flight async Facebook scrape (trigger phase).
+ *
+ * Stores the Bright Data snapshot_id + trigger time so a later cron tick can
+ * COLLECT it (see the daily-snapshot cron). Deliberately does NOT touch
+ * scrape_status or last_scraped_at: the profile keeps its previous status (e.g.
+ * yesterday's 'ok') until the collect phase lands or gives up, and stays "due"
+ * only in the sense that the pending-job columns — not the due-filter — gate
+ * re-triggering. Clear with clearFacebookJob once collected/failed.
+ */
+export async function setFacebookJob(
+  profileId: string,
+  snapshotId: string,
+  triggeredAt: Date = new Date(),
+): Promise<void> {
+  const sb = getSupabaseAdmin();
+  const res = await sb
+    .from('profile')
+    .update({
+      fb_snapshot_id: snapshotId,
+      fb_snapshot_triggered_at: triggeredAt.toISOString(),
+    })
+    .eq('id', profileId);
+  if (res.error) {
+    throw new Error(`setFacebookJob failed: ${res.error.message}`);
+  }
+}
+
+/** Clear a profile's in-flight Facebook job (after collect success/failure). */
+export async function clearFacebookJob(profileId: string): Promise<void> {
+  const sb = getSupabaseAdmin();
+  const res = await sb
+    .from('profile')
+    .update({ fb_snapshot_id: null, fb_snapshot_triggered_at: null })
+    .eq('id', profileId);
+  if (res.error) {
+    throw new Error(`clearFacebookJob failed: ${res.error.message}`);
+  }
+}
+
 /** Update profile.scrape_status + last_scraped_at after a scrape attempt. */
 export async function setProfileStatus(
   profileId: string,
